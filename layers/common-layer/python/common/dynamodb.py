@@ -7,7 +7,7 @@ This module provides utilities for working with DynamoDB.
 import os
 import boto3
 import json
-from typing import Dict, Any, List, Optional, TypeVar, Generic, Union
+from typing import Dict, Any, List, Optional, TypeVar, Generic, Union, Type
 from aws_lambda_powertools import Logger
 from botocore.exceptions import ClientError
 
@@ -280,131 +280,392 @@ class DynamoDBRepository(Generic[T]):
         Batch get items from DynamoDB table
         
         Args:
-            keys: List of keys for items to retrieve
+            keys: List of keys to retrieve
                 
         Returns:
-            List of items retrieved from DynamoDB
+            List of retrieved items
             
         Raises:
             ClientError: If there is an error with the DynamoDB client
         """
+        if not keys:
+            return []
+            
         try:
-            if not keys:
-                return []
-                
-            # DynamoDB limits batch get to 100 items
-            chunk_size = 100
-            all_items = []
+            # DynamoDB limits batch operations to 100 items
+            batch_size = 100
+            result = []
             
-            # Process in chunks to avoid exceeding DynamoDB limits
-            for i in range(0, len(keys), chunk_size):
-                chunk = keys[i:i + chunk_size]
-                response = self.dynamodb.batch_get_item(
-                    RequestItems={
-                        self.table_name: {
-                            'Keys': chunk
-                        }
+            # Process in batches
+            for i in range(0, len(keys), batch_size):
+                batch_keys = keys[i:i + batch_size]
+                
+                # Format request for batch_get_item
+                request_items = {
+                    self.table_name: {
+                        'Keys': batch_keys
                     }
-                )
+                }
                 
-                if 'Responses' in response and self.table_name in response['Responses']:
-                    all_items.extend(response['Responses'][self.table_name])
+                response = self.dynamodb.batch_get_item(RequestItems=request_items)
+                
+                # Add retrieved items to result
+                if self.table_name in response.get('Responses', {}):
+                    result.extend(response['Responses'][self.table_name])
+                
+                # Handle unprocessed keys
+                unprocessed = response.get('UnprocessedKeys', {})
+                while unprocessed and self.table_name in unprocessed:
+                    # Retry unprocessed keys
+                    response = self.dynamodb.batch_get_item(RequestItems=unprocessed)
                     
-                # Handle unprocessed items
-                unprocessed = response.get('UnprocessedKeys', {}).get(self.table_name, {}).get('Keys', [])
-                if unprocessed:
-                    retry_response = self.dynamodb.batch_get_item(
-                        RequestItems={
-                            self.table_name: {
-                                'Keys': unprocessed
-                            }
-                        }
-                    )
-                    if 'Responses' in retry_response and self.table_name in retry_response['Responses']:
-                        all_items.extend(retry_response['Responses'][self.table_name])
+                    # Add retrieved items to result
+                    if self.table_name in response.get('Responses', {}):
+                        result.extend(response['Responses'][self.table_name])
                     
-            return all_items
-        except ClientError as e:
-            logger.exception(f"Error batch getting {len(keys)} items")
-            raise
+                    # Update unprocessed keys
+                    unprocessed = response.get('UnprocessedKeys', {})
             
+            return result
+        except ClientError as e:
+            logger.exception(f"Error batch getting items")
+            raise
+    
     def batch_write_items(self, items: List[Dict[str, Any]], delete_keys: Optional[List[Dict[str, Any]]] = None) -> None:
         """
-        Batch write (put or delete) items in DynamoDB table
+        Batch write (put/delete) items to DynamoDB table
         
         Args:
             items: List of items to put
-            delete_keys: List of keys for items to delete
+            delete_keys: List of keys to delete
                 
         Raises:
             ClientError: If there is an error with the DynamoDB client
         """
+        if not items and not delete_keys:
+            return
+            
         try:
-            # DynamoDB limits batch write to 25 items
-            chunk_size = 25
+            # DynamoDB limits batch operations to 25 items
+            batch_size = 25
             
-            # Process puts in chunks
-            if items:
-                for i in range(0, len(items), chunk_size):
-                    chunk = items[i:i + chunk_size]
-                    request_items = []
-                    
-                    for item in chunk:
-                        request_items.append({
-                            'PutRequest': {
-                                'Item': item
-                            }
-                        })
-                        
-                    response = self.dynamodb.batch_write_item(
-                        RequestItems={
-                            self.table_name: request_items
-                        }
-                    )
-                    
-                    # Handle unprocessed items
-                    self._handle_unprocessed_items(response)
+            # Prepare write requests
+            put_requests = [{'PutRequest': {'Item': item}} for item in items] if items else []
+            delete_requests = [{'DeleteRequest': {'Key': key}} for key in delete_keys] if delete_keys else []
+            write_requests = put_requests + delete_requests
             
-            # Process deletes in chunks
-            if delete_keys:
-                for i in range(0, len(delete_keys), chunk_size):
-                    chunk = delete_keys[i:i + chunk_size]
-                    request_items = []
+            # Process in batches
+            for i in range(0, len(write_requests), batch_size):
+                batch_requests = write_requests[i:i + batch_size]
+                
+                # Format request for batch_write_item
+                request_items = {
+                    self.table_name: batch_requests
+                }
+                
+                response = self.dynamodb.batch_write_item(RequestItems=request_items)
+                
+                # Handle unprocessed items
+                unprocessed = response.get('UnprocessedItems', {})
+                while unprocessed and self.table_name in unprocessed:
+                    # Retry unprocessed items
+                    response = self.dynamodb.batch_write_item(RequestItems=unprocessed)
                     
-                    for key in chunk:
-                        request_items.append({
-                            'DeleteRequest': {
-                                'Key': key
-                            }
-                        })
-                        
-                    response = self.dynamodb.batch_write_item(
-                        RequestItems={
-                            self.table_name: request_items
-                        }
-                    )
-                    
-                    # Handle unprocessed items
-                    self._handle_unprocessed_items(response)
-                    
+                    # Update unprocessed items
+                    unprocessed = response.get('UnprocessedItems', {})
         except ClientError as e:
-            item_count = len(items) if items else 0
-            delete_count = len(delete_keys) if delete_keys else 0
-            logger.exception(f"Error batch writing {item_count} items and deleting {delete_count} items")
+            logger.exception(f"Error batch writing items")
             raise
-            
+    
     def _handle_unprocessed_items(self, response: Dict[str, Any]) -> None:
         """
         Handle unprocessed items from batch operations
         
         Args:
-            response: The response from a batch operation that may contain unprocessed items
+            response: Response from batch operation
         """
-        unprocessed = response.get('UnprocessedItems', {}).get(self.table_name, [])
-        if unprocessed:
-            retry_response = self.dynamodb.batch_write_item(
-                RequestItems={
-                    self.table_name: unprocessed
-                }
-            )
-            # Could implement exponential backoff for multiple retries if needed 
+        unprocessed = response.get('UnprocessedItems', {})
+        if unprocessed and self.table_name in unprocessed:
+            logger.warning(f"Unprocessed items: {len(unprocessed[self.table_name])}")
+            
+            # TODO: Implement retry mechanism for unprocessed items
+            # This is a placeholder for future implementation
+            pass
+    
+    # Model-based methods
+    
+    def get_model(self, model_class: Type[T], **keys) -> Optional[T]:
+        """
+        Get model by key(s)
+        
+        Args:
+            model_class: The model class
+            **keys: Key values by name (e.g., id='123')
+                
+        Returns:
+            Model instance or None if not found
+            
+        Raises:
+            ValueError: If model keys are not properly defined
+            ClientError: If there is an error with the DynamoDB client
+        """
+        from common.models.decorators import get_model_keys, _get_property_metadata
+        from common.models.mapper import dynamodb_item_to_model
+        
+        # Get key field names
+        key_map = get_model_keys(model_class)
+        pk_field = key_map.get('primary_key')
+        sk_field = key_map.get('sort_key')
+        
+        if not pk_field:
+            raise ValueError(f"Model {model_class.__name__} does not define a primary key")
+        
+        # Get DB key names
+        pk_meta = _get_property_metadata(model_class, pk_field)
+        pk_db_name = pk_meta.get('name', pk_field)
+        
+        sk_db_name = None
+        if sk_field:
+            sk_meta = _get_property_metadata(model_class, sk_field)
+            sk_db_name = sk_meta.get('name', sk_field)
+        
+        # Build key
+        db_key = {}
+        
+        # Handle different key formats:
+        # 1. Keys by field name: id='123', metadata='DATA'
+        # 2. Direct key values: 'USER#123', 'METADATA'
+        if keys:
+            # Keys provided by name
+            if pk_field in keys:
+                # Create temporary instance to get formatted key
+                from common.models.base_model import BaseModel
+                temp_instance = model_class(**keys)
+                pk_value = getattr(temp_instance, pk_field)
+                db_key[pk_db_name] = pk_value
+                
+                if sk_field and sk_field in keys:
+                    sk_value = getattr(temp_instance, sk_field)
+                    db_key[sk_db_name] = sk_value
+            else:
+                # Direct key values
+                if len(keys) == 1 and pk_db_name:
+                    db_key[pk_db_name] = list(keys.values())[0]
+                elif len(keys) == 2 and pk_db_name and sk_db_name:
+                    values = list(keys.values())
+                    db_key[pk_db_name] = values[0]
+                    db_key[sk_db_name] = values[1]
+                else:
+                    raise ValueError(f"Invalid keys format for {model_class.__name__}")
+        else:
+            raise ValueError(f"No keys provided for {model_class.__name__}")
+        
+        # Get item from DynamoDB
+        item = self.get_item(db_key)
+        if not item:
+            return None
+        
+        # Convert to model
+        return dynamodb_item_to_model(model_class, item)
+    
+    def save_model(self, model: T) -> T:
+        """
+        Save model to DynamoDB
+        
+        Args:
+            model: The model instance
+                
+        Returns:
+            The saved model instance
+            
+        Raises:
+            ClientError: If there is an error with the DynamoDB client
+        """
+        from common.models.mapper import model_to_dynamodb_item
+        
+        # Convert model to DynamoDB item
+        item = model_to_dynamodb_item(model)
+        
+        # Save to DynamoDB
+        self.put_item(item)
+        
+        # Mark model as clean
+        model.mark_clean()
+        
+        return model
+    
+    def delete_model(self, model: T) -> None:
+        """
+        Delete model from DynamoDB
+        
+        Args:
+            model: The model instance
+                
+        Raises:
+            ClientError: If there is an error with the DynamoDB client
+        """
+        from common.models.mapper import generate_key
+        
+        # Generate key for the model
+        key = generate_key(model)
+        
+        # Delete from DynamoDB
+        self.delete_item(key)
+    
+    def query_models(self, 
+                    model_class: Type[T],
+                    key_condition_expression: str, 
+                    expression_attribute_values: Dict[str, Any],
+                    expression_attribute_names: Optional[Dict[str, str]] = None,
+                    filter_expression: Optional[str] = None,
+                    index_name: Optional[str] = None,
+                    limit: Optional[int] = None,
+                    scan_index_forward: bool = True,
+                    exclusive_start_key: Optional[Dict[str, Any]] = None) -> List[T]:
+        """
+        Query models from DynamoDB
+        
+        Args:
+            model_class: The model class
+            key_condition_expression: The condition that specifies the key values for items to be retrieved
+            expression_attribute_values: Values that are substituted in the expression
+            expression_attribute_names: Names that are substituted in the expression
+            filter_expression: The filter expression to apply after query
+            index_name: Name of the index to query
+            limit: Maximum number of items to return
+            scan_index_forward: Specifies the order for index traversal (True for forward, False for backwards)
+            exclusive_start_key: The key to start the query from (for pagination)
+                
+        Returns:
+            List of model instances
+            
+        Raises:
+            ClientError: If there is an error with the DynamoDB client
+        """
+        from common.models.mapper import dynamodb_item_to_model
+        
+        # Execute query
+        response = self.query(
+            key_condition_expression=key_condition_expression,
+            expression_attribute_values=expression_attribute_values,
+            expression_attribute_names=expression_attribute_names,
+            filter_expression=filter_expression,
+            index_name=index_name,
+            limit=limit,
+            scan_index_forward=scan_index_forward,
+            exclusive_start_key=exclusive_start_key
+        )
+        
+        # Convert items to models
+        items = response.get('Items', [])
+        models = [dynamodb_item_to_model(model_class, item) for item in items]
+        
+        return models
+    
+    def scan_models(self,
+                   model_class: Type[T],
+                   filter_expression: Optional[str] = None,
+                   expression_attribute_values: Optional[Dict[str, Any]] = None,
+                   expression_attribute_names: Optional[Dict[str, str]] = None,
+                   index_name: Optional[str] = None,
+                   limit: Optional[int] = None,
+                   exclusive_start_key: Optional[Dict[str, Any]] = None) -> List[T]:
+        """
+        Scan models from DynamoDB
+        
+        Args:
+            model_class: The model class
+            filter_expression: The filter expression to apply during scan
+            expression_attribute_values: Values that are substituted in the expression
+            expression_attribute_names: Names that are substituted in the expression
+            index_name: Name of the index to scan
+            limit: Maximum number of items to return
+            exclusive_start_key: The key to start the scan from (for pagination)
+                
+        Returns:
+            List of model instances
+            
+        Raises:
+            ClientError: If there is an error with the DynamoDB client
+        """
+        from common.models.mapper import dynamodb_item_to_model
+        
+        # Execute scan
+        response = self.scan(
+            filter_expression=filter_expression,
+            expression_attribute_values=expression_attribute_values,
+            expression_attribute_names=expression_attribute_names,
+            index_name=index_name,
+            limit=limit,
+            exclusive_start_key=exclusive_start_key
+        )
+        
+        # Convert items to models
+        items = response.get('Items', [])
+        models = [dynamodb_item_to_model(model_class, item) for item in items]
+        
+        return models
+    
+    def batch_get_models(self, model_class: Type[T], keys: List[Dict[str, Any]]) -> List[T]:
+        """
+        Batch get models from DynamoDB
+        
+        Args:
+            model_class: The model class
+            keys: List of keys to retrieve
+                
+        Returns:
+            List of model instances
+            
+        Raises:
+            ClientError: If there is an error with the DynamoDB client
+        """
+        from common.models.mapper import dynamodb_item_to_model
+        
+        # Execute batch get
+        items = self.batch_get_items(keys)
+        
+        # Convert items to models
+        models = [dynamodb_item_to_model(model_class, item) for item in items]
+        
+        return models
+    
+    def batch_save_models(self, models: List[T]) -> None:
+        """
+        Batch save models to DynamoDB
+        
+        Args:
+            models: List of model instances
+                
+        Raises:
+            ClientError: If there is an error with the DynamoDB client
+        """
+        from common.models.mapper import model_to_dynamodb_item
+        
+        # Convert models to DynamoDB items
+        items = [model_to_dynamodb_item(model) for model in models]
+        
+        # Save to DynamoDB
+        self.batch_write_items(items)
+        
+        # Mark models as clean
+        for model in models:
+            model.mark_clean()
+    
+    def batch_delete_models(self, models: List[T]) -> None:
+        """
+        Batch delete models from DynamoDB
+        
+        Args:
+            models: List of model instances
+                
+        Raises:
+            ClientError: If there is an error with the DynamoDB client
+        """
+        from common.models.mapper import generate_key
+        
+        # Generate keys for the models
+        keys = [generate_key(model) for model in models]
+        
+        # Delete from DynamoDB
+        self.batch_write_items([], keys) 
