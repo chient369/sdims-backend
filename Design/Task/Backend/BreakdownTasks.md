@@ -15,7 +15,7 @@ Tài liệu này phân tích và chia nhỏ công việc phát triển backend c
 
 ## Infrastructure (AWS SAM / CloudFormation)
 
-- [ ] **BE-INF-001**: Thiết lập cấu trúc dự án SAM ban đầu với file template.yaml (High Priority)
+- [x] **BE-INF-001**: Thiết lập cấu trúc dự án SAM ban đầu với file template.yaml (High Priority)
   - Cấu hình môi trường (staging, production)
   - Định nghĩa các parameter và tài nguyên chung
 
@@ -27,17 +27,17 @@ Tài liệu này phân tích và chia nhỏ công việc phát triển backend c
   - Tạo các IAM role với quyền tối thiểu theo nguyên tắc least privilege
   - Cấu hình permissions cho các dịch vụ DynamoDB, S3
 
-- [ ] **BE-INF-004**: Triển khai DynamoDB table theo cấu trúc đã định nghĩa (High Priority)
+- [x] **BE-INF-004**: Triển khai DynamoDB table theo cấu trúc đã định nghĩa (High Priority)
   - Tạo single-table design với các GSI đã định nghĩa trong tài liệu
   - Cấu hình capacity mode (provisioned)
   - Thiết lập các tham số backup và recovery
 
-- [ ] **BE-INF-005**: Cấu hình API Gateway cho REST API (High Priority)
+- [x] **BE-INF-005**: Cấu hình API Gateway cho REST API (High Priority)
   - Xác định resources và methods 
   - Thiết lập các API stages
   - Cấu hình CORS, response/request mapping templates
 
-- [ ] **BE-INF-006**: Cài đặt monitoring và logging (Medium Priority)
+- [x] **BE-INF-006**: Cài đặt monitoring và logging (Medium Priority)
   - Thiết lập CloudWatch alarms
   - Cấu hình X-Ray tracing
   - Tích hợp logging framework
@@ -48,7 +48,7 @@ Tài liệu này phân tích và chia nhỏ công việc phát triển backend c
 
 ## Core Services & Libraries
 
-- [ ] **BE-CORE-001**: Xây dựng lớp truy xuất DynamoDB (High Priority)
+- [x] **BE-CORE-001**: Xây dựng lớp truy xuất DynamoDB (High Priority)
   - Tạo utility classes cho CRUD operations
   - Triển khai các hàm truy vấn theo access patterns
   - Cài đặt pagination và filtering

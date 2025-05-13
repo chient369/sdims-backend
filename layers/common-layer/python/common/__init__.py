@@ -1,7 +1,7 @@
 """
-Common Utilities Package for SDIMS
+SDIMS Common Utilities
 
-This package contains common utilities and services used across all Lambda functions.
+This package provides common utilities for SDIMS.
 """
 
-__version__ = "1.0.0" 
+__version__ = "0.1.0" 
