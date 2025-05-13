@@ -96,4 +96,110 @@ def logout_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     return format_response(
         status_code=200,
         body={"message": "Successfully logged out"}
-    ) 
+    )
+
+@handle_lambda_error
+def me_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """
+    Handler for getting current user information.
+    
+    Args:
+        event: API Gateway event
+        context: Lambda context
+        
+    Returns:
+        API Gateway response with user info
+    """
+    logger.info("Processing get current user request")
+    
+    # Get user context from the authorizor
+    request_context = event.get("requestContext", {})
+    authorizer_context = request_context.get("authorizer", {})
+    
+    user_id = authorizer_context.get("userId")
+    user_role = authorizer_context.get("userRole")
+    
+    if not user_id:
+        logger.warning("User ID not found in authorizer context")
+        raise UnauthorizedError("User not authenticated")
+    
+    # TODO: Replace with actual DB lookup to get user details
+    # This is a placeholder implementation
+    user_info = {
+        "id": user_id,
+        "username": "user", # This should come from DB
+        "role": user_role,
+        "permissions": get_permissions_for_role(user_role)
+    }
+    
+    logger.info(f"Retrieved user info for user {user_id}")
+    
+    return format_response(
+        status_code=200,
+        body={"user": user_info}
+    )
+
+def get_permissions_for_role(role: str) -> list:
+    """
+    Get permissions for a role.
+    
+    Args:
+        role: Role name
+        
+    Returns:
+        List of permissions
+    """
+    # TODO: Replace with actual permissions from a database or config
+    permissions_map = {
+        "admin": [
+            "user:read:all",
+            "user:write:all",
+            "employee:read:all",
+            "employee:write:all",
+            "contract:read:all",
+            "contract:write:all",
+            "opportunity:read:all",
+            "opportunity:write:all",
+            "margin:read:all",
+            "report:read:all",
+            "system:admin"
+        ],
+        "manager": [
+            "user:read:own",
+            "employee:read:all",
+            "employee:write:department",
+            "contract:read:department",
+            "opportunity:read:department",
+            "opportunity:write:department",
+            "margin:read:department",
+            "report:read:department"
+        ],
+        "leader": [
+            "user:read:own",
+            "employee:read:team",
+            "employee:write:team",
+            "contract:read:team",
+            "opportunity:read:team",
+            "margin:read:team",
+            "report:read:team"
+        ],
+        "sales": [
+            "user:read:own",
+            "employee:read:basic",
+            "contract:read:own",
+            "contract:write:own",
+            "opportunity:read:own",
+            "opportunity:write:own",
+            "report:read:sales"
+        ],
+        "employee": [
+            "user:read:own",
+            "employee:read:own",
+            "employee:write:profile",
+        ],
+        "user": [
+            "user:read:own"
+        ]
+    }
+    
+    return permissions_map.get(role, []) 

@@ -3,7 +3,7 @@ import json
 import time
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import ApiGatewayResolver, Response
-from src.common.s3 import create_presigned_upload_url
+from common.s3 import S3Utils
 
 logger = Logger(service="file-upload-service")
 tracer = Tracer(service="file-upload-service")
@@ -32,11 +32,15 @@ def get_upload_url():
         key = f"{folder_path}/{int(time.time())}-{file_name}"
         attachments_bucket = os.environ.get('ATTACHMENTS_BUCKET')
         
+        # Khởi tạo S3Utils từ common layer
+        s3_utils = S3Utils(bucket_name=attachments_bucket)
+        
         # Tạo presigned URL
-        presigned_url = create_presigned_upload_url(
-            attachments_bucket,
-            key,
-            content_type
+        presigned_url = s3_utils.generate_presigned_url(
+            key=key,
+            http_method="PUT",
+            content_type=content_type,
+            expiration=3600
         )
         
         return Response(
@@ -53,7 +57,7 @@ def get_upload_url():
             status_code=500,
             content_type="application/json",
             body=json.dumps({
-                "message": "Error creating upload URL"
+                "message": f"Error creating upload URL: {str(e)}"
             })
         )
 

@@ -7,10 +7,13 @@ Globals:
     Timeout: 30
     MemorySize: 256
     Runtime: python3.13
+    Layers:
+      - !Ref CommonLayer
     Environment:
       Variables:
         LOG_LEVEL: INFO
         STAGE: !Ref Stage
+        TABLE_NAME: !Ref SDIMSTable
 
 # Parameters
 Parameters:
@@ -47,6 +50,17 @@ Parameters:
     Type: String
     Default: "example.com"
     Description: Domain name của frontend website
+    
+  JWTSecret:
+    Type: String
+    Default: "your-secret-key-change-in-production"
+    Description: Secret key used for JWT token generation and validation
+    NoEcho: true
+
+  CertificateArn:
+    Type: String
+    Default: ""
+    Description: ARN of the SSL certificate for custom domain (optional)
 
 # Resources
 Resources:
@@ -60,6 +74,29 @@ Resources:
       CompatibleRuntimes:
         - python3.13
       RetentionPolicy: Retain
+  
+  # Lambda Authorizer Function
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/auth/
+      Handler: authorizer.handler
+      Runtime: python3.13
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JWTSecret
+          LOG_LEVEL: INFO
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 'logs:CreateLogGroup'
+                - 'logs:CreateLogStream'
+                - 'logs:PutLogEvents'
+              Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
+      Layers:
+        - !Ref CommonLayer
   
   # S3 Buckets
   AttachmentsBucket:
@@ -215,7 +252,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/
-      Handler: common.handlers.create_upload_url.handler
+      Handler: files.create_upload_url.handler
       Description: Creates presigned URLs for file uploads
       Environment:
         Variables:
@@ -229,7 +266,7 @@ Resources:
           Properties:
             Path: /api/v1/files/upload-url
             Method: post
-            RestApiId: !Ref ApiGateway
+            RestApiId: !Ref SDIMSApi
       Layers:
         - !Ref CommonLayer
   
@@ -238,7 +275,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/
-      Handler: common.handlers.download_file_url.handler
+      Handler: files.download_file_url.handler
       Description: Creates presigned URLs for file downloads
       Environment:
         Variables:
@@ -252,19 +289,213 @@ Resources:
           Properties:
             Path: /api/v1/files/download-url
             Method: get
-            RestApiId: !Ref ApiGateway
+            RestApiId: !Ref SDIMSApi
       Layers:
         - !Ref CommonLayer
   
   # API Gateway Definition
-  ApiGateway:
+  SDIMSApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: !Ref Stage
+      EndpointConfiguration: REGIONAL
+      Auth:
+        DefaultAuthorizer: LambdaTokenAuthorizer
+        Authorizers:
+          LambdaTokenAuthorizer:
+            FunctionPayloadType: TOKEN
+            FunctionArn: !GetAtt AuthorizerFunction.Arn
+            Identity:
+              Header: Authorization
+      DefinitionBody:
+        swagger: "2.0"
+        info:
+          title: !Sub "SDIMS API - ${Stage}"
+          version: "1.0.0"
+        paths:
+          # Paths được định nghĩa trong các lambda functions
       Cors:
-        AllowMethods: "'GET, POST, PUT, DELETE, OPTIONS'"
-        AllowHeaders: "'Content-Type, Authorization, X-Amz-Date, X-Api-Key'"
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
         AllowOrigin: !Sub "'https://${WebsiteDomainName}'"
+        MaxAge: "'3600'"
+        AllowCredentials: "'true'"
+      GatewayResponses:
+        DEFAULT_4XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: !Sub "'https://${WebsiteDomainName}'"
+              Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              Access-Control-Allow-Credentials: "'true'"
+        DEFAULT_5XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: !Sub "'https://${WebsiteDomainName}'"
+              Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              Access-Control-Allow-Credentials: "'true'"
+      AccessLogSetting:
+        DestinationArn: !GetAtt APIGatewayAccessLogGroup.Arn
+        Format: '{"requestId":"$context.requestId", "ip":"$context.identity.sourceIp", "caller":"$context.identity.caller", "user":"$context.identity.user", "requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod", "resourcePath":"$context.resourcePath", "status":"$context.status", "protocol":"$context.protocol", "responseLength":"$context.responseLength"}'
+
+  # API Gateway Access Logs
+  APIGatewayAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${SDIMSApi}-${Stage}-access-logs"
+      RetentionInDays: 90
+      
+  # API Gateway Custom Domain (Optional)
+  APIDomainName:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: !Sub "api.${WebsiteDomainName}"
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      RegionalCertificateArn: !Ref CertificateArn
+        
+  APIMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName: !Ref APIDomainName
+      RestApiId: !Ref SDIMSApi
+      Stage: !Ref Stage
+      
+  # Web Application Firewall (WAF) for API Gateway
+  ApiGatewayWaf:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: !Sub "${AWS::StackName}-api-waf"
+      Scope: REGIONAL
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub "${AWS::StackName}-api-waf-metrics"
+      Rules:
+        - Name: AWSManagedRulesCommonRuleSet
+          Priority: 0
+          OverrideAction:
+            None: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWSManagedRulesCommonRuleSetMetric
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+        - Name: AWSManagedRulesSQLiRuleSet
+          Priority: 1
+          OverrideAction:
+            None: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWSManagedRulesSQLiRuleSetMetric
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesSQLiRuleSet
+  
+  # Association between WAF WebACL and API Gateway stage
+  ApiGatewayWafAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Properties:
+      ResourceArn: !Sub "arn:aws:apigateway:${AWS::Region}::/restapis/${SDIMSApi}/stages/${Stage}"
+      WebACLArn: !GetAtt ApiGatewayWaf.Arn
+
+  # Authentication Lambda Functions
+  LoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/auth/
+      Handler: auth.login_handler
+      Runtime: python3.13
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JWTSecret
+          TABLE_NAME: !Ref SDIMSTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SDIMSTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/auth/login
+            Method: post
+            RestApiId: !Ref SDIMSApi
+      Layers:
+        - !Ref CommonLayer
+        
+  LogoutFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/auth/
+      Handler: auth.logout_handler
+      Runtime: python3.13
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JWTSecret
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/auth/logout
+            Method: post
+            RestApiId: !Ref SDIMSApi
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
+      Layers:
+        - !Ref CommonLayer
+        
+  RefreshTokenFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/auth/
+      Handler: refresh_token.handler
+      Runtime: python3.13
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JWTSecret
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/auth/refresh-token
+            Method: post
+            RestApiId: !Ref SDIMSApi
+      Layers:
+        - !Ref CommonLayer
+        
+  MeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/auth/
+      Handler: auth.me_handler
+      Runtime: python3.13
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JWTSecret
+          TABLE_NAME: !Ref SDIMSTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref SDIMSTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/auth/me
+            Method: get
+            RestApiId: !Ref SDIMSApi
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
+      Layers:
+        - !Ref CommonLayer
   
   # DynamoDB Table
   SDIMSTable:
@@ -428,4 +659,4 @@ Outputs:
   
   ApiEndpoint:
     Description: "API Gateway endpoint URL"
-    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}" 
+    Value: !Sub "https://${SDIMSApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}" 

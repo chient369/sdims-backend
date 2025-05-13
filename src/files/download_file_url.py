@@ -2,7 +2,7 @@ import os
 import json
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler.api_gateway import ApiGatewayResolver, Response
-from src.common.s3 import create_presigned_get_url, check_object_exists
+from common.s3 import S3Utils
 
 logger = Logger(service="file-download-service")
 tracer = Tracer(service="file-download-service")
@@ -29,8 +29,11 @@ def get_download_url():
         if not bucket_name:
             bucket_name = os.environ.get('ATTACHMENTS_BUCKET')
         
+        # Khởi tạo S3Utils từ common layer
+        s3_utils = S3Utils(bucket_name=bucket_name)
+        
         # Kiểm tra file có tồn tại không
-        if not check_object_exists(bucket_name, key):
+        if not s3_utils.object_exists(key):
             return Response(
                 status_code=404,
                 content_type="application/json",
@@ -40,9 +43,10 @@ def get_download_url():
             )
         
         # Tạo presigned URL
-        download_url = create_presigned_get_url(
-            bucket_name,
-            key
+        download_url = s3_utils.generate_presigned_url(
+            key=key,
+            http_method="GET",
+            expiration=3600
         )
         
         return Response(
@@ -59,7 +63,7 @@ def get_download_url():
             status_code=500,
             content_type="application/json",
             body=json.dumps({
-                "message": "Error creating download URL"
+                "message": f"Error creating download URL: {str(e)}"
             })
         )
 
