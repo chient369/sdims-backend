@@ -1,0 +1,42 @@
+@startuml MH-OPP-01_Opportunity_List
+!theme materia
+
+title Luồng Màn hình MH-OPP-01: Danh sách Cơ hội Kinh doanh
+
+start
+
+:Từ MH-DSH-01 (Click Menu 'Cơ hội');
+' Hoặc từ MH-OPP-02 (Quay lại danh sách)
+
+partition MH-OPP-01 {
+  :Hiển thị Danh sách Cơ hội (Bảng);
+  ' Đồng bộ từ Hubspot, columns: Tên, Khách, Stage, Giá trị, Người phụ trách, Trạng thái Follow-up...
+  :Có nút Đồng bộ thủ công (Optional), Tìm kiếm/Lọc;
+
+  split
+    :Click Tên Cơ hội;
+    -> MH-OPP-02;
+    end
+  split again
+    :Click nút 'Đồng bộ thủ công';
+    :Trigger quá trình đồng bộ Hubspot;
+    :Refresh danh sách;
+    :Hiển thị thông báo kết quả đồng bộ;
+    -> MH-OPP-01;
+    end
+  split again
+    :Nhập điều kiện Tìm kiếm/Lọc;
+    ' Lọc theo Stage, Người phụ trách, Trạng thái Follow-up...
+    :Click nút Tìm/Lọc;
+    :Hiển thị kết quả;
+    -> MH-OPP-01;
+    end
+  split again
+    :Click điều hướng quay lại (VD: Dashboard);
+    -> MH-DSH-01;
+    end
+  end split
+}
+
+stop
+@enduml 

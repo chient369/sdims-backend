@@ -1,0 +1,46 @@
+@startuml MH-OPP-02_Opportunity_Detail
+!theme materia
+
+title Luồng Màn hình MH-OPP-02: Chi tiết Cơ hội Kinh doanh
+
+start
+
+:Từ MH-OPP-01 (Click Tên Cơ hội);
+
+partition MH-OPP-02 {
+  :Hiển thị Thông tin Chi tiết Cơ hội;
+  ' Bao gồm thông tin đồng bộ từ Hubspot và các thông tin bổ sung
+  :Hiển thị Lịch sử Tương tác/Ghi chú;
+  :Có các chức năng: Thêm Ghi chú, Assign Leader, Đánh dấu Onsite Priority;
+
+  split
+    :Nhập nội dung Ghi chú mới;
+    :Click nút 'Lưu Ghi chú';
+    :Lưu Ghi chú & Cập nhật Lịch sử Tương tác;
+    :Cập nhật 'Last Interaction Date';
+    -> MH-OPP-02;
+    end
+  split again
+    :Click nút 'Assign Leader';
+    :Popup/Modal chọn Team Leader;
+    :Click 'Lưu' trong Popup/Modal;
+    :Lưu Leader được assign & Cập nhật màn hình;
+    -> MH-OPP-02;
+    end
+  split again
+    :Click Checkbox 'Ưu tiên Onsite';
+    :Lưu trạng thái Ưu tiên Onsite;
+    -> MH-OPP-02;
+    end
+  split again
+    :Xem thông tin;
+    stop
+  split again
+    :Click nút/link quay lại Danh sách;
+    -> MH-OPP-01;
+    end
+  end split
+}
+
+stop
+@enduml 

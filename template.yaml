@@ -1,0 +1,431 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SDIMS - Internal Management System
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: python3.13
+    Environment:
+      Variables:
+        LOG_LEVEL: INFO
+        STAGE: !Ref Stage
+
+# Parameters
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Deployment stage
+    
+  DynamoDBReadCapacityUnits:
+    Type: Number
+    Default: 5
+    Description: Read capacity units cho DynamoDB table
+    
+  DynamoDBWriteCapacityUnits:
+    Type: Number
+    Default: 5
+    Description: Write capacity units cho DynamoDB table
+    
+  DynamoDBGSIReadCapacityUnits:
+    Type: Number
+    Default: 5
+    Description: Read capacity units cho Global Secondary Indexes
+    
+  DynamoDBGSIWriteCapacityUnits:
+    Type: Number
+    Default: 5
+    Description: Write capacity units cho Global Secondary Indexes
+    
+  WebsiteDomainName:
+    Type: String
+    Default: "example.com"
+    Description: Domain name của frontend website
+
+# Resources
+Resources:
+  # Lambda Functions sẽ được định nghĩa ở đây
+  CommonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: common-layer
+      Description: Common utilities layer
+      ContentUri: layers/common-layer/
+      CompatibleRuntimes:
+        - python3.13
+      RetentionPolicy: Retain
+  
+  # S3 Buckets
+  AttachmentsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "sdims-attachments-${Stage}-${AWS::AccountId}"
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+              - HEAD
+            AllowedOrigins:
+              - !Sub "https://${WebsiteDomainName}"
+            MaxAge: 3600
+      LifecycleConfiguration:
+        Rules:
+          - Id: TransitionToIA
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+  
+  ProfileImagesBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "sdims-profile-images-${Stage}-${AWS::AccountId}"
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+              - HEAD
+            AllowedOrigins:
+              - !Sub "https://${WebsiteDomainName}"
+            MaxAge: 3600
+      LifecycleConfiguration:
+        Rules:
+          - Id: TransitionToIA
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+  
+  BackupBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "sdims-backups-${Stage}-${AWS::AccountId}"
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireOldBackups
+            Status: Enabled
+            ExpirationInDays: 365
+  
+  # S3 Bucket Policies
+  AttachmentsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AttachmentsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !Sub "${AttachmentsBucket.Arn}/*"
+              - !Sub "${AttachmentsBucket.Arn}"
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+  
+  ProfileImagesBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ProfileImagesBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !Sub "${ProfileImagesBucket.Arn}/*"
+              - !Sub "${ProfileImagesBucket.Arn}"
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+  
+  BackupBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref BackupBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !Sub "${BackupBucket.Arn}/*"
+              - !Sub "${BackupBucket.Arn}"
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+  
+  # Lambda Function cho file upload URL
+  CreateUploadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: common.handlers.create_upload_url.handler
+      Description: Creates presigned URLs for file uploads
+      Environment:
+        Variables:
+          ATTACHMENTS_BUCKET: !Ref AttachmentsBucket
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref AttachmentsBucket
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/files/upload-url
+            Method: post
+            RestApiId: !Ref ApiGateway
+      Layers:
+        - !Ref CommonLayer
+  
+  # Lambda Function cho file download URL
+  CreateDownloadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: common.handlers.download_file_url.handler
+      Description: Creates presigned URLs for file downloads
+      Environment:
+        Variables:
+          ATTACHMENTS_BUCKET: !Ref AttachmentsBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref AttachmentsBucket
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/files/download-url
+            Method: get
+            RestApiId: !Ref ApiGateway
+      Layers:
+        - !Ref CommonLayer
+  
+  # API Gateway Definition
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Stage
+      Cors:
+        AllowMethods: "'GET, POST, PUT, DELETE, OPTIONS'"
+        AllowHeaders: "'Content-Type, Authorization, X-Amz-Date, X-Api-Key'"
+        AllowOrigin: !Sub "'https://${WebsiteDomainName}'"
+  
+  # DynamoDB Table
+  SDIMSTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "SDIMS-Main-${Stage}"
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: !Ref DynamoDBReadCapacityUnits
+        WriteCapacityUnits: !Ref DynamoDBWriteCapacityUnits
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+        - AttributeName: GSI2PK
+          AttributeType: S
+        - AttributeName: GSI2SK
+          AttributeType: S
+        - AttributeName: GSI3PK
+          AttributeType: S
+        - AttributeName: GSI3SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: !Ref DynamoDBGSIReadCapacityUnits
+            WriteCapacityUnits: !Ref DynamoDBGSIWriteCapacityUnits
+        - IndexName: GSI2
+          KeySchema:
+            - AttributeName: GSI2PK
+              KeyType: HASH
+            - AttributeName: GSI2SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: !Ref DynamoDBGSIReadCapacityUnits
+            WriteCapacityUnits: !Ref DynamoDBGSIWriteCapacityUnits
+        - IndexName: GSI3
+          KeySchema:
+            - AttributeName: GSI3PK
+              KeyType: HASH
+            - AttributeName: GSI3SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: !Ref DynamoDBGSIReadCapacityUnits
+            WriteCapacityUnits: !Ref DynamoDBGSIWriteCapacityUnits
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Stage
+  
+  # Auto Scaling cho DynamoDB Table
+  TableReadScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub "${Stage}-read-scaling-policy"
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref TableReadScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBReadCapacityUtilization
+        TargetValue: 70
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+        
+  TableReadScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: 100
+      MinCapacity: 5
+      ResourceId: !Sub "table/${SDIMSTable}"
+      ScalableDimension: dynamodb:table:ReadCapacityUnits
+      ServiceNamespace: dynamodb
+      RoleARN: !GetAtt ScalingRole.Arn
+      
+  TableWriteScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub "${Stage}-write-scaling-policy"
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref TableWriteScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBWriteCapacityUtilization
+        TargetValue: 70
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+        
+  TableWriteScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: 100
+      MinCapacity: 5
+      ResourceId: !Sub "table/${SDIMSTable}"
+      ScalableDimension: dynamodb:table:WriteCapacityUnits
+      ServiceNamespace: dynamodb
+      RoleARN: !GetAtt ScalingRole.Arn
+      
+  # Auto Scaling IAM Role
+  ScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: application-autoscaling.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonDynamoDBFullAccess
+
+# Outputs để export các giá trị cần thiết
+Outputs:
+  CommonLayerArn:
+    Description: "ARN of the Common Layer"
+    Value: !Ref CommonLayer
+    
+  SDIMSTableName:
+    Description: "Name of the SDIMS DynamoDB table"
+    Value: !Ref SDIMSTable
+    
+  SDIMSTableArn:
+    Description: "ARN of the SDIMS DynamoDB table"
+    Value: !GetAtt SDIMSTable.Arn
+  
+  AttachmentsBucketName:
+    Description: "Name of the Attachments S3 bucket"
+    Value: !Ref AttachmentsBucket
+    
+  ProfileImagesBucketName:
+    Description: "Name of the Profile Images S3 bucket"
+    Value: !Ref ProfileImagesBucket
+    
+  BackupBucketName:
+    Description: "Name of the Backup S3 bucket"
+    Value: !Ref BackupBucket
+  
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}" 

@@ -1,0 +1,43 @@
+@startuml MH-CTR-04_Accountant_Payment_Update
+!theme materia
+
+title Luồng Màn hình MH-CTR-04: (Kế toán) Cập nhật Trạng thái Thu tiền
+
+start
+
+:Từ MH-CTR-02 (Click 'Cập nhật Thanh toán');
+' (Chỉ User có quyền Kế toán)
+
+partition MH-CTR-04 {
+  :Hiển thị Danh sách các Đợt thanh toán của Hợp đồng;
+  ' Columns: Tên đợt, Ngày dự kiến, Số tiền, Trạng thái hiện tại, Input/Select Trạng thái mới, Input Ngày thực thu...
+
+  split
+   :Kế toán cập nhật Trạng thái / Ngày thực thu;
+   :Click nút 'Lưu thay đổi Thanh toán';
+   :Validate dữ liệu;
+   if (Validation OK?) then (yes)
+     :Lưu trạng thái thanh toán mới;
+     :Hiển thị thông báo thành công;
+     -> MH-CTR-02;
+     end
+   else (no)
+     :Hiển thị lỗi Validation;
+     -> MH-CTR-04;
+     end
+   endif
+
+  split again
+   :(Optional) Chức năng Import File cập nhật hàng loạt;
+   ' Nếu có thì thêm luồng import tương tự MH-MGN-02
+   stop
+
+  split again
+    :Click nút 'Hủy' / Quay lại;
+    -> MH-CTR-02;
+    end
+  end split
+}
+
+stop
+@enduml 

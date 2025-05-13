@@ -1,0 +1,57 @@
+@startuml MH-ADM-01_Admin_User_Management
+!theme materia
+
+title Luồng Màn hình MH-ADM-01: (Admin) Quản lý Người dùng
+
+start
+
+:Từ MH-DSH-01 (Click Menu 'Quản trị' -> 'Người dùng');
+' Hoặc từ menu Admin riêng
+
+partition MH-ADM-01 {
+  :Hiển thị Danh sách Người dùng (Bảng);
+  ' Columns: Tên đăng nhập, Họ tên, Email, Vai trò, Trạng thái...
+  :Có nút Thêm mới, Sửa, Khóa/Mở khóa, Reset Mật khẩu, Tìm kiếm/Lọc;
+
+  split
+    :Click 'Thêm mới';
+    :Popup/Form nhập thông tin User mới;
+    ' Nhập Tên đăng nhập, Họ tên, Email, Chọn Vai trò...
+    :Click 'Lưu' trong Popup/Form;
+    :Tạo User mới & Refresh Danh sách;
+    -> MH-ADM-01;
+    end
+  split again
+    :Click nút 'Sửa' của một User;
+    :Popup/Form sửa thông tin User;
+    :Click 'Lưu' trong Popup/Form;
+    :Lưu thay đổi & Refresh Danh sách;
+    -> MH-ADM-01;
+    end
+  split again
+    :Click nút 'Khóa/Mở khóa' của một User;
+    :Confirm hành động;
+    :Cập nhật trạng thái User & Refresh Danh sách;
+    -> MH-ADM-01;
+    end
+  split again
+    :Click nút 'Reset Mật khẩu' của một User;
+    :Confirm hành động;
+    :Reset mật khẩu (gửi email hoặc hiển thị mật khẩu tạm thời);
+    :Hiển thị thông báo;
+    -> MH-ADM-01;
+    end
+  split again
+    :Tìm kiếm/Lọc User;
+    :Hiển thị kết quả;
+    -> MH-ADM-01;
+    end
+  split again
+    :Click điều hướng quay lại (VD: Dashboard Admin);
+    -> MH-ADM-Main; ' Màn hình Admin chính hoặc Dashboard
+    end
+  end split
+}
+
+stop
+@enduml 

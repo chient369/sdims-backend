@@ -1,0 +1,58 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+## Cấu trúc dự án
+ ```
+  sdims/
+  ├── samconfig.toml             # SAM CLI config file
+  ├── template.yaml              # SAM template chính
+  ├── src/                       # Thư mục chứa source code các lambda functions
+  │   ├── common/                # Code dùng chung cho tất cả các lambda functions
+  │   │   ├── __init__.py
+  │   │   ├── dynamodb.py        # Utility cho DynamoDB
+  │   │   ├── s3.py              # Utility cho S3
+  │   │   └── auth.py            # Utility cho Authentication
+  │   ├── auth/                  # Các lambda functions liên quan đến authentication
+  │   │   ├── __init__.py
+  │   │   ├── login.py
+  │   │   ├── logout.py
+  │   │   ├── refresh_token.py
+  │   │   └── authorizer.py
+  │   ├── hrm/                   # Các lambda functions liên quan đến quản lý nhân sự
+  │   │   ├── __init__.py
+  │   │   ├── employees.py
+  │   │   └── skills.py
+  │   ├── margins/               # Các lambda functions liên quan đến margins
+  │   │   ├── __init__.py
+  │   │   └── calculations.py
+  │   ├── opportunities/         # Các lambda functions liên quan đến cơ hội kinh doanh
+  │   │   ├── __init__.py
+  │   │   └── hubspot_sync.py
+  │   ├── contracts/             # Các lambda functions liên quan đến hợp đồng
+  │   │   ├── __init__.py
+  │   │   └── file_uploads.py
+  │   ├── reports/               # Các lambda functions liên quan đến reports/dashboard
+  │   │   ├── __init__.py
+  │   │   └── dashboard.py
+  │   └── admin/                 # Các lambda functions liên quan đến quản trị hệ thống
+  │       ├── __init__.py
+  │       └── users.py
+  ├── layers/                    # Shared Lambda Layers
+  │   ├── common-layer/          # Layer chứa các thư viện dùng chung
+  │   │   └── python/            # Chứa các package Python
+  │   │       └── requirements.txt  # Dependencies cho layer
+  ├── events/                    # Chứa các event mẫu để test API
+  ├── tests/                     # Unit tests và integration tests
+  │   ├── unit/                  # Unit tests
+  │   │   ├── __init__.py
+  │   │   └── test_auth.py
+  │   └── integration/           # Integration tests
+  │       ├── __init__.py
+  │       └── test_api.py
+  ├── requirements.txt           # Dependencies cho dự án
+  ├── pytest.ini                 # Cấu hình pytest
+  └── .gitignore                # Git ignore file
+
+  ```

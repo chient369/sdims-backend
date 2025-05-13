@@ -1,0 +1,92 @@
+@startuml HighLevelScreenFlow
+!theme materia
+
+title Sơ đồ Luồng Di chuyển Chính giữa các Màn hình/Module
+
+' **Ghi chú:** Sơ đồ này thể hiện luồng điều hướng chính giữa các màn hình/module.
+' Chi tiết luồng bên trong từng màn hình được mô tả trong các file .puml riêng 
+' (VD: MH-AUTH-01.puml, MH-DSH-01.puml, MH-HRM-01.puml...) 
+' trong thư mục 'diagram'.
+
+start
+
+:Truy cập Hệ thống;
+
+:MH-AUTH-01: Đăng nhập;
+' << See MH-AUTH-01.puml >>
+
+:Xác thực thành công?;
+
+if () then (yes)
+  :MH-DSH-01: Dashboard Tổng quan;
+  ' << See MH-DSH-01.puml >>
+
+  partition "Điều hướng chính từ Dashboard" {
+    split
+      :Click Menu 'Nhân sự';
+      -> MH-HRM-01;
+      ' << HRM Module Flow >>
+      ' << See MH-HRM-01.puml >>
+      end
+    split again
+      :Click Menu 'Margin';
+      ' (Có quyền?)
+      if () then (yes)
+        -> MH-MGN-01;
+        ' << Margin Module Flow >>
+        ' << See MH-MGN-01.puml >>
+        end
+      else (no)
+        stop
+      endif
+    split again
+      :Click Menu 'Cơ hội';
+      -> MH-OPP-01;
+      ' << Opportunity Module Flow >>
+      ' << See MH-OPP-01.puml >>
+      end
+    split again
+      :Click Menu 'Hợp đồng';
+      -> MH-CTR-01;
+      ' << Contract Module Flow >>
+      ' << See MH-CTR-01.puml >>
+      end
+    split again
+      :Click Menu 'Báo cáo';
+      -> MH-RPT-01;
+      ' << Report Module Flow >>
+      ' << See MH-RPT-01.puml >>
+      end
+    split again
+      :Click Menu 'Quản trị';
+      ' (Có quyền Admin?)
+       if () then (yes)
+        -> MH-ADM-01;
+        ' << Admin Module Flow >>
+        ' << See MH-ADM-01.puml >>
+        end
+       else (no)
+         stop
+       endif
+    split again
+      :Click Widget (VD: 'Nhân sự Bench');
+      -> MH-HRM-01 (filtered);
+      ' << HRM Module Flow >>
+      ' << See MH-HRM-01.puml >>
+      end
+    split again
+      :Click 'Đăng xuất';
+      -> MH-AUTH-01;
+      end
+    end split
+  }
+
+else (no)
+  :Thông báo lỗi;
+  -> MH-AUTH-01;
+  end
+endif
+
+stop
+
+@enduml 

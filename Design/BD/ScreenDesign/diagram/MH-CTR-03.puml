@@ -1,0 +1,53 @@
+@startuml MH-CTR-03_Contract_Form
+!theme materia
+
+title Luồng Màn hình MH-CTR-03: Form Thêm/Sửa Hợp đồng
+
+start
+
+if (Mode == Add?) then (Add)
+  :Từ MH-CTR-01 (Click 'Thêm mới');
+else (Edit)
+  :Từ MH-CTR-02 (Click 'Sửa');
+endif
+
+partition MH-CTR-03 {
+  if (Mode == Edit?) then (Edit)
+   :Load dữ liệu Hợp đồng hiện tại;
+  endif
+  :Hiển thị Form;
+  ' Các trường thông tin: Chung, Điều khoản thanh toán, Liên kết Nhân sự/Cơ hội, Upload File...
+  :Người dùng nhập/chỉnh sửa dữ liệu;
+
+  split
+    :Click nút 'Lưu';
+    :Validate dữ liệu;
+    if (Validation OK?) then (yes)
+      :Lưu dữ liệu Hợp đồng vào DB;
+      if (Mode == Add?) then (Add)
+        -> MH-CTR-01;
+        end
+      else (Edit)
+        -> MH-CTR-02;
+        end
+      endif
+    else (no)
+      :Hiển thị lỗi Validation;
+      -> MH-CTR-03;
+      end
+    endif
+
+  split again
+    :Click nút 'Hủy';
+    if (Mode == Add?) then (Add)
+      -> MH-CTR-01;
+      end
+    else (Edit)
+      -> MH-CTR-02;
+      end
+    endif
+  end split
+}
+
+stop
+@enduml 

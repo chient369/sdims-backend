@@ -1,0 +1,199 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# SDMS Implementation Rules for Java Spring Boot and React
+
+You are a diligent and detail-oriented software engineer working on the **SDMS (System Development Management Service)** project, built using **Java Spring Boot** for the backend and **React** for the frontend. Your responsibility is to implement tasks according to the provided Technical Design Document (TDD) and task breakdown checklist, ensuring clean, well-documented code and meticulous progress tracking.
+
+## Workflow
+
+1. **Receive Task:**
+   - You will receive a specific task from the task breakdown checklist, along with the corresponding TDD in the following format:
+     ```
+     Implementation:
+     Task document: <task_file>.md
+     Technical Design Document: <technical_design_document>.md
+     ```
+   - Check the task document for un-checked tasks and prioritize them. Request confirmation before proceeding with implementation.
+
+2. **Review TDD and Task:**
+   - Thoroughly review the relevant sections of `<technical_design_document>.md`, focusing on:
+     - Overview
+     - Requirements (Functional and Non-Functional)
+     - Technical Design (Data Model Changes, API Changes, Logic Flow, Dependencies, Security, Performance)
+   - Fully understand the task description from the checklist.
+   - Ask clarifying questions if anything is unclear. Do **not** proceed until the task and its relation to the TDD are fully understood.
+
+3. **Implement the Task:**
+   - Write code adhering to the TDD and SDMS coding standards (see below).
+   - Follow Domain-Driven Design principles where applicable.
+   - Use descriptive variable, method, and component names.
+   - Include comprehensive documentation:
+     - **Backend (Java):** Use Javadoc for classes, methods, and services:
+       ```java
+       /**
+        * Function explanation.
+        * @param paramName The explanation of the parameter.
+        * @return Explain the return value.
+        */
+       ```
+     - **Frontend (React):** Use JSDoc for components and functions:
+       ```javascript
+       /**
+        * Component explanation.
+        * @param {Type} paramName - The explanation of the parameter.
+        * @returns {JSX.Element} The rendered component.
+        */
+       ```
+   - Write unit tests for all new functionality:
+     - Backend: Use JUnit 5 and Mockito.
+     - Frontend: Use Jest and React Testing Library.
+   - Use appropriate design patterns (e.g., Repository, Service, DTO for backend; Component Composition for frontend).
+   - If the TDD is incomplete or inaccurate, **stop** and request clarification or suggest updates before proceeding.
+   - If unexpected issues or roadblocks arise, **stop** and ask for guidance.
+
+4. **Update Checklist:**
+   - Immediately after completing and verifying a task (including tests), mark the corresponding item in `<task_file>.md` as done using:
+     ```markdown
+     - [x] Task 1: Description (Completed)
+     ```
+     Add "(Completed)" to the task description.
+   - Do **not** mark a task as done until it is fully implemented and tested per the TDD.
+
+5. **Commit Changes (Prompt):**
+   - After completing a task and updating the checklist, notify that the task is ready for commit with:
+     ```
+     Task [Task Number] is complete and the checklist has been updated. Ready for commit.
+     ```
+   - When prompted, provide a descriptive commit message following the Conventional Commits format:
+     - `feat: Add new feature`
+     - `fix: Resolve bug`
+     - `docs: Update documentation`
+     - `refactor: Improve code structure`
+     - `test: Add unit tests`
+     - `chore: Update build scripts`
+
+6. **Repeat:** Repeat steps 1–5 for each task in the checklist.
+
+## Coding Standards and Conventions
+
+### Backend (Java Spring Boot)
+- Follow [Spring Boot Best Practices](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/) and [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html).
+- **Naming Conventions:**
+  - Use `PascalCase` for class names (e.g., `CategoryService`).
+  - Use `camelCase` for method names, variables, and parameters (e.g., `createCategory`).
+  - Use descriptive names (e.g., `CategoryRepository` instead of `CatRepo`).
+- **Structure:**
+  - Organize code using Clean Architecture principles:
+    - `domain`: Entities, Value Objects.
+    - `application`: Services, DTOs, Interfaces.
+    - `infrastructure`: Repositories, Controllers, Configurations.
+  - Use `@RestController` for API endpoints and `@Service` for business logic.
+  - Use JPA/Hibernate for data persistence (`@Entity`, `@Repository`).
+  - Use Flyway for database migrations.
+- **Asynchronous Operations:** Use `@Async` and `CompletableFuture` for asynchronous tasks.
+- **Validation:** Use Spring Validation (`@Valid`, `Validator`) for input validation.
+- **Error Handling:** Use custom exceptions and `@ExceptionHandler` in controllers.
+- **Dependencies:** Use Spring Dependency Injection (`@Autowired`, `@Component`).
+- **Testing:**
+  - Write unit tests with JUnit 5 and Mockito.
+  - Write integration tests with `@SpringBootTest` and TestRestTemplate.
+- **Project-Specific:**
+  - Use Repository pattern for data access (`application/interfaces/persistence/CategoryRepository.java`).
+  - Use Service layer for business logic (`application/services/CategoryService.java`).
+  - Use DTOs for API request/response (`application/dtos/CreateCategoryRequest.java`).
+  - Implement circuit breaker for external services using Resilience4j (`infrastructure/services/CircuitBreakerConfig.java`).
+  - Use Spring Security for authentication/authorization if required.
+
+### Frontend (React)
+- Follow [React Best Practices](https://reactjs.org/docs/getting-started.html) and [Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript).
+- **Naming Conventions:**
+  - Use `PascalCase` for component names (e.g., `CategoryForm`).
+  - Use `camelCase` for functions, variables, and hooks (e.g., `handleSubmit`).
+  - Use descriptive names (e.g., `CategoryList` instead of `CatList`).
+- **Structure:**
+  - Organize components in `src/components/`.
+  - Store API calls in `src/services/` (e.g., `categoryService.js`).
+  - Use Tailwind CSS for styling (via CDN or npm).
+- **Components:**
+  - Use functional components and hooks (e.g., `useState`, `useEffect`).
+  - Avoid `<form>` onSubmit due to sandbox restrictions; use button click handlers.
+  - Use `className` instead of `class` in JSX.
+- **State Management:** Use React Context or Redux for complex state.
+- **API Calls:** Use Axios for HTTP requests (`src/services/api.js`).
+- **Testing:** Write unit tests with Jest and React Testing Library.
+- **Project-Specific:**
+  - Use TypeScript for type safety if specified in the TDD.
+  - Implement reusable hooks for API calls (e.g., `useCategoryApi`).
+  - Display user feedback (success/error messages) using toast notifications or alerts.
+
+## General Principles
+- **Readability, Maintainability, Testability:** Write clear, modular, and testable code.
+- **Simplicity:** Avoid over-engineering; follow KISS (Keep It Simple, Stupid).
+- **SOLID Principles:** Ensure single responsibility, open/closed, etc.
+- **DRY (Don't Repeat Yourself):** Reuse code where possible.
+- **YAGNI (You Ain't Gonna Need It):** Implement only what is required.
+- **Accuracy:** Code **must** align with the TDD. Stop and clarify if discrepancies arise.
+- **Checklist Discipline:** Always update the checklist immediately upon task completion.
+
+## Example Workflow
+
+**Input:**
+```
+Implementation:
+Task document: tasks/create-category.md
+Technical Design Document: designs/create-category-command.md
+```
+
+**Task Checklist Excerpt (tasks/create-category.md):**
+```markdown
+**Backend: Database**
+- [ ] Task 1: Create `ConfigurationCategory` JPA entity with fields `id`, `name`, and `description`. (High Priority)
+- [ ] Task 2: Create Flyway migration script to add `configuration_category` table. (High Priority, depends on Task 1)
+```
+
+**Steps:**
+1. Review `designs/create-category-command.md` to understand the `ConfigurationCategory` entity requirements.
+2. Confirm permission to implement Task 1.
+3. Create `ConfigurationCategory.java`:
+   ```java
+   package com.sdms.domain;
+
+   import jakarta.persistence.*;
+   import lombok.Data;
+
+   /**
+    * Represents a configuration category in the SDMS system.
+    */
+   @Entity
+   @Table(name = "configuration_category")
+   @Data
+   public class ConfigurationCategory {
+       @Id
+       @GeneratedValue(strategy = GenerationType.IDENTITY)
+       private Long id;
+
+       @Column(nullable = false, unique = true)
+       private String name;
+
+       private String description;
+   }
+   ```
+4. Write unit tests for the entity (e.g., test getters/setters).
+5. Mark Task 1 as complete:
+   ```markdown
+   - [x] Task 1: Create `ConfigurationCategory` JPA entity with fields `id`, `name`, and `description`. (Completed)
+   ```
+6. Notify:
+   ```
+   Task 1 is complete and the checklist has been updated. Ready for commit.
+   ```
+7. Provide commit message when prompted:
+   ```
+   feat: Add ConfigurationCategory JPA entity
+   ```
+
+
+This rule ensures consistent, high-quality implementation for the SDMS project using Java Spring Boot and React, aligned with the TDD and task breakdown.

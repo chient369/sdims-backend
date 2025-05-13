@@ -1,0 +1,39 @@
+@startuml MH-CTR-01_Contract_List
+!theme materia
+
+title Luồng Màn hình MH-CTR-01: Danh sách Hợp đồng
+
+start
+
+:Từ MH-DSH-01 (Click Menu 'Hợp đồng');
+' Hoặc từ MH-CTR-03 (Sau khi Lưu/Hủy Thêm mới)
+
+partition MH-CTR-01 {
+  :Hiển thị Danh sách Hợp đồng (Bảng);
+  ' Columns: Mã HĐ, Tên HĐ, Khách hàng, Ngày ký, Giá trị, Trạng thái...
+  :Có nút Thêm mới, Tìm kiếm/Lọc;
+
+  split
+    :Click 'Thêm mới';
+    -> MH-CTR-03 (Mode: Add);
+    end
+  split again
+    :Click Tên/Mã Hợp đồng;
+    -> MH-CTR-02;
+    end
+  split again
+    :Nhập điều kiện Tìm kiếm/Lọc;
+    ' Lọc theo Khách hàng, Trạng thái, Ngày ký...
+    :Click nút Tìm/Lọc;
+    :Hiển thị kết quả;
+    -> MH-CTR-01;
+    end
+  split again
+    :Click điều hướng quay lại (VD: Dashboard);
+    -> MH-DSH-01;
+    end
+  end split
+}
+
+stop
+@enduml 

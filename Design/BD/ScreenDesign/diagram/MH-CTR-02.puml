@@ -1,0 +1,41 @@
+@startuml MH-CTR-02_Contract_Detail
+!theme materia
+
+title Luồng Màn hình MH-CTR-02: Chi tiết Hợp đồng
+
+start
+
+:Từ MH-CTR-01 (Click Tên/Mã HĐ);
+' Hoặc từ MH-CTR-03 (Sau khi Lưu/Hủy Sửa)
+' Hoặc từ MH-CTR-04 (Sau khi Kế toán cập nhật thanh toán)
+
+partition MH-CTR-02 {
+  :Hiển thị Thông tin Chi tiết Hợp đồng;
+  ' Sections: Thông tin chung, Điều khoản thanh toán, Trạng thái thu tiền, Nhân sự tham gia, Files đính kèm...
+  :Có nút 'Sửa', (Kế toán) 'Cập nhật Thanh toán';
+
+  split
+    :Click nút 'Sửa';
+    -> MH-CTR-03 (Mode: Edit);
+    end
+  split again
+    :Click nút 'Cập nhật Thanh toán';
+    ' (Kiểm tra quyền Kế toán)
+    if (Có quyền Kế toán?) then (yes)
+      -> MH-CTR-04;
+      end
+    else (no)
+      stop
+    endif
+  split again
+    :Xem thông tin / File đính kèm;
+    stop
+  split again
+    :Click nút/link quay lại Danh sách;
+    -> MH-CTR-01;
+    end
+  end split
+}
+
+stop
+@enduml 

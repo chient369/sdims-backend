@@ -1,0 +1,19 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Trong mỗi tài liệu được định dạng bằng markdown (.md) luôn thêm phần header dưới đây vào tài liệu
+**Version Control:**
+
+| Version | Date       | Author         | Changes                        | Approved By | Status    |
+| :------ | :--------- | :------------- | :----------------------------- | :---------- | :-------- |
+| 1.0     | yyyy-MM-dd | Chiến Trần Văn | Thay bằng nội dung AI thực hiện thay đổi | -           | Draft     |
+
+---
+
+## 1. Mục tiêu  
+Mô tả ngắn gọn mục tiêu của tài liệu.
+
+
+

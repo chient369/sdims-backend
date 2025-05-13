@@ -1,0 +1,34 @@
+@startuml MH-RPT-02_Report_View
+!theme materia
+
+title Luồng Màn hình MH-RPT-02: Xem Báo cáo Chi tiết
+
+start
+
+:Từ MH-RPT-01 (Click Tên Báo cáo);
+
+partition MH-RPT-02 {
+  :Hiển thị Dữ liệu Báo cáo (Bảng/Biểu đồ);
+  :Có các Bộ lọc tùy chọn (Thời gian, Team, Sales... tùy báo cáo);
+  :Có nút Xem/Refresh, Export;
+
+  split
+    :Thay đổi giá trị Bộ lọc;
+    :Click nút 'Xem/Refresh';
+    :Load lại dữ liệu Báo cáo theo bộ lọc mới;
+    -> MH-RPT-02;
+    end
+  split again
+    :Click nút 'Export';
+    :Tạo và tải file báo cáo (Excel/CSV);
+    -> MH-RPT-02;
+    end
+  split again
+    :Click điều hướng quay lại (VD: Danh sách Báo cáo);
+    -> MH-RPT-01;
+    end
+  end split
+}
+
+stop
+@enduml 

@@ -1,0 +1,57 @@
+@startuml MH-ADM-02_Admin_Role_Permission
+!theme materia
+
+title Luồng Màn hình MH-ADM-02: (Admin) Quản lý Vai trò & Phân quyền
+
+start
+
+:Từ MH-DSH-01 (Click Menu 'Quản trị' -> 'Vai trò');
+' Hoặc từ menu Admin riêng
+
+partition MH-ADM-02 {
+  :Hiển thị Danh sách Vai trò (Roles);
+  :Có nút Thêm mới, Sửa, Xóa Vai trò;
+
+  split
+    :Click 'Thêm mới' Vai trò;
+    :Popup/Form nhập Tên Vai trò mới;
+    :Click 'Lưu' trong Popup;
+    :Lưu Vai trò mới & Refresh Danh sách;
+    -> MH-ADM-02;
+    end
+  split again
+    :Click nút 'Sửa' của một Vai trò;
+    :Popup/Form sửa Tên Vai trò;
+    :Click 'Lưu' trong Popup;
+    :Lưu thay đổi & Refresh Danh sách;
+    -> MH-ADM-02;
+    end
+  split again
+    :Click nút 'Xóa' của một Vai trò;
+    :Confirm Xóa (Cảnh báo nếu có User đang dùng Role này);
+    if (Confirmed & Safe to Delete?) then (yes)
+      :Xóa Vai trò & Refresh Danh sách;
+      -> MH-ADM-02;
+      end
+    else (no)
+      :Hiển thị thông báo không thể xóa;
+      -> MH-ADM-02;
+      end
+    endif
+  split again
+    :Click vào Tên Vai trò để Phân quyền;
+    :Hiển thị danh sách các Quyền (Permissions) dạng checkbox/tree;
+    :Admin chọn/bỏ chọn các Quyền cho Vai trò đó;
+    :Click nút 'Lưu Quyền';
+    :Lưu cấu hình Phân quyền cho Vai trò;
+    -> MH-ADM-02;
+    end
+  split again
+    :Click điều hướng quay lại (VD: Dashboard Admin);
+    -> MH-ADM-Main; ' Màn hình Admin chính hoặc Dashboard
+    end
+  end split
+}
+
+stop
+@enduml 

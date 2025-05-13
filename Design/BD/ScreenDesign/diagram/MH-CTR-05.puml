@@ -1,0 +1,37 @@
+@startuml MH-CTR-05_Admin_Sales_KPI
+!theme materia
+
+title Luồng Màn hình MH-CTR-05: (Admin) Quản lý KPI Doanh thu Sales
+
+start
+
+:Từ MH-ADM-03 (Click link quản lý KPI Sales);
+' Hoặc từ menu Admin riêng
+
+partition MH-CTR-05 {
+  :Hiển thị Bảng quản lý KPI Doanh thu;
+  ' Columns: Nhân viên Sales, Kỳ (Tháng/Quý/Năm), Target Revenue...
+  :Có nút Thêm mới/Sửa, Lọc theo Sales/Kỳ;
+
+  split
+    :Click 'Thêm mới' hoặc 'Sửa' một KPI;
+    :Popup/Form nhập/sửa thông tin KPI;
+    ' Chọn Sales, Chọn Kỳ, Nhập Target Revenue
+    :Click 'Lưu' trong Popup/Form;
+    :Lưu KPI & Refresh Bảng;
+    -> MH-CTR-05;
+    end
+  split again
+    :Lọc dữ liệu theo Sales/Kỳ;
+    :Hiển thị kết quả lọc;
+    -> MH-CTR-05;
+    end
+  split again
+    :Click điều hướng quay lại (VD: Admin Config);
+    -> MH-ADM-03;
+    end
+  end split
+}
+
+stop
+@enduml 

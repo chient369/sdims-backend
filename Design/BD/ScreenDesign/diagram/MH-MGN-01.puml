@@ -1,0 +1,34 @@
+@startuml MH-MGN-01_Margin_List
+!theme materia
+
+title Luồng Màn hình MH-MGN-01: Bảng Margin Nhân sự
+
+start
+
+:Từ MH-DSH-01 (Click Menu 'Margin');
+' (Chỉ User có quyền Leader/TP)
+
+partition MH-MGN-01 {
+  :Hiển thị Bảng Margin Nhân sự;
+  ' Columns: Tên NV, Team, Cost, Revenue, Margin (%), Màu Cảnh báo...
+  :Có Bộ lọc (Team, Thời gian), nút Nhập/Import Chi phí;
+
+  split
+    :Xem/Lọc dữ liệu;
+    ' Người dùng chọn Team/Thời gian, click Lọc
+    :Cập nhật Bảng Margin;
+    -> MH-MGN-01;
+    end
+  split again
+    :Click nút 'Nhập/Import Chi phí';
+    -> MH-MGN-02;
+    end
+  split again
+    :Click điều hướng quay lại (VD: Dashboard);
+    -> MH-DSH-01;
+    end
+  end split
+}
+
+stop
+@enduml 

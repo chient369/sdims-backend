@@ -1,0 +1,49 @@
+@startuml MH-MGN-02_Margin_Cost_Input
+!theme materia
+
+title Luồng Màn hình MH-MGN-02: Form Nhập/Import Chi phí
+
+start
+
+:Từ MH-MGN-01 (Click 'Nhập/Import Chi phí');
+' (Chỉ User có quyền Leader/TP)
+
+partition MH-MGN-02 {
+  :Hiển thị Form;
+  :Chọn Tháng/Năm áp dụng;
+  :Có 2 lựa chọn: Nhập thủ công hoặc Import File;
+
+  split
+    :Chọn 'Nhập thủ công';
+    :Hiển thị Bảng nhập chi phí cho từng NV;
+    :Người dùng nhập dữ liệu Cost;
+    :Click nút 'Lưu Chi phí Thủ công';
+    :Validate & Lưu dữ liệu Cost;
+    :Hiển thị thông báo thành công;
+    -> MH-MGN-01;
+    end
+  split again
+    :Chọn 'Import File';
+    :Hiển thị nút Chọn File (CSV/Excel) & Tải template (nếu có);
+    :Người dùng chọn File;
+    :Click nút 'Upload & Import';
+    :Hệ thống xử lý File, Validate dữ liệu;
+    if (Import OK?) then (yes)
+      :Lưu dữ liệu Cost từ File;
+      :Hiển thị thông báo thành công/kết quả import;
+      -> MH-MGN-01;
+      end
+    else (no)
+      :Hiển thị thông báo lỗi Import;
+      -> MH-MGN-02;
+      end
+    endif
+  split again
+    :Click nút 'Hủy' / Quay lại;
+    -> MH-MGN-01;
+    end
+  end split
+}
+
+stop
+@enduml 

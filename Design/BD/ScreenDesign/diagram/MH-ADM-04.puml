@@ -1,0 +1,42 @@
+@startuml MH-ADM-04_Admin_System_Log
+!theme materia
+
+title Luồng Màn hình MH-ADM-04: (Admin) Xem Log Hệ thống
+
+start
+
+:Từ MH-DSH-01 (Click Menu 'Quản trị' -> 'Log');
+' Hoặc từ menu Admin riêng
+
+partition MH-ADM-04 {
+  :Hiển thị Log Hệ thống;
+  ' Dạng bảng hoặc text, hiển thị timestamp, level (INFO/ERROR), message...
+  :Có Bộ lọc (Theo level, theo thời gian, theo User...);
+  :Có chức năng Clear Log (Optional, cần xác nhận);
+
+  split
+    :Lọc Log theo điều kiện;
+    :Hiển thị Log đã lọc;
+    -> MH-ADM-04;
+    end
+  split again
+    :Click nút 'Clear Log';
+    :Confirm hành động;
+    if (Confirmed?) then (yes)
+      :Xóa Log (hoặc lưu trữ archive);
+      :Refresh màn hình Log;
+      -> MH-ADM-04;
+      end
+    else (no)
+      -> MH-ADM-04;
+      end
+    endif
+  split again
+    :Click điều hướng quay lại (VD: Dashboard Admin);
+    -> MH-ADM-Main; ' Màn hình Admin chính hoặc Dashboard
+    end
+  end split
+}
+
+stop
+@enduml 

@@ -1,0 +1,48 @@
+@startuml MH-HRM-04_Admin_Skill_List
+!theme materia
+
+title Luồng Màn hình MH-HRM-04: (Admin) Quản lý Danh mục Skills
+
+start
+
+:Từ MH-ADM-03 (Click link quản lý Skills);
+' Hoặc từ menu Admin riêng
+
+partition MH-HRM-04 {
+  :Hiển thị Danh sách Skills (Bảng);
+  :Action: Thêm mới, Sửa, Xóa;
+
+  split
+    :Click 'Thêm mới';
+    :Popup/Form nhập Tên Skill mới;
+    :Click 'Lưu' trong Popup/Form;
+    :Lưu Skill mới & Refresh Danh sách;
+    -> MH-HRM-04;
+    end
+  split again
+    :Click nút 'Sửa' của một Skill;
+    :Popup/Form sửa Tên Skill;
+    :Click 'Lưu' trong Popup/Form;
+    :Lưu thay đổi & Refresh Danh sách;
+    -> MH-HRM-04;
+    end
+  split again
+    :Click nút 'Xóa' của một Skill;
+    :Confirm Xóa;
+    if (Confirmed?) then (yes)
+      :Xóa Skill & Refresh Danh sách;
+      -> MH-HRM-04;
+      end
+    else (no)
+      -> MH-HRM-04;
+      end
+    endif
+  split again
+    :Click điều hướng quay lại (VD: Admin Config);
+    -> MH-ADM-03;
+    end
+  end split
+}
+
+stop
+@enduml 

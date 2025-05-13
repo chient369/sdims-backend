@@ -1,0 +1,32 @@
+@startuml MH-HRM-02_HRM_Detail
+!theme materia
+
+title Luồng Màn hình MH-HRM-02: Chi tiết Nhân sự
+
+start
+
+:Từ MH-HRM-01 (Click Tên/Mã NV);
+' Hoặc từ MH-HRM-03 (Sau khi Lưu/Hủy Sửa)
+
+partition MH-HRM-02 {
+  :Hiển thị Thông tin Chi tiết Nhân sự;
+  ' Tabs/Sections: Thông tin cơ bản, Skills, Trạng thái, Lịch sử Dự án...
+  :Có nút 'Sửa';
+
+  split
+    :Click nút 'Sửa';
+    -> MH-HRM-03 (Mode: Edit);
+    end
+  split again
+    :Xem thông tin;
+    ' Người dùng có thể xem các tab/section khác nhau
+    stop
+  split again
+    :Click nút/link quay lại Danh sách;
+    -> MH-HRM-01;
+    end
+  end split
+}
+
+stop
+@enduml 

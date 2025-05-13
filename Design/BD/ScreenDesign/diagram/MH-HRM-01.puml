@@ -1,0 +1,42 @@
+@startuml MH-HRM-01_HRM_List
+!theme materia
+
+title Luồng Màn hình MH-HRM-01: Danh sách Nhân sự
+
+start
+
+:Từ MH-DSH-01 (Click Menu 'Nhân sự' hoặc Widget);
+' Hoặc từ MH-HRM-03 (Sau khi Lưu/Hủy Thêm mới)
+
+partition MH-HRM-01 {
+  :Hiển thị Danh sách Nhân sự (Bảng);
+  :Có các nút: Thêm mới, Export, Tìm kiếm/Lọc;
+
+  split
+    :Click 'Thêm mới';
+    -> MH-HRM-03 (Mode: Add);
+    end
+  split again
+    :Click Tên/Mã NV;
+    -> MH-HRM-02;
+    end
+  split again
+    :Click 'Export';
+    :Tải file danh sách;
+    -> MH-HRM-01;
+    end
+  split again
+    :Nhập điều kiện Tìm kiếm/Lọc;
+    :Click nút Tìm/Lọc;
+    :Hiển thị kết quả;
+    -> MH-HRM-01;
+    end
+  split again
+    :Click điều hướng quay lại (VD: Dashboard);
+    -> MH-DSH-01;
+    end
+  end split
+}
+
+stop
+@enduml 

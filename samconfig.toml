@@ -1,0 +1,22 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "sdims-backend"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-xxxx"
+s3_prefix = "sdims-backend"
+region = "ap-southeast-1"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Stage=dev"
+
+[staging]
+[staging.deploy]
+[staging.deploy.parameters]
+stack_name = "sdims-backend-staging"
+parameter_overrides = "Stage=staging"
+
+[prod]
+[prod.deploy]
+[prod.deploy.parameters]
+stack_name = "sdims-backend-prod"
+parameter_overrides = "Stage=prod" 

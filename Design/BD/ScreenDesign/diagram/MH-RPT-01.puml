@@ -1,0 +1,26 @@
+@startuml MH-RPT-01_Report_List
+!theme materia
+
+title Luồng Màn hình MH-RPT-01: Danh sách Báo cáo
+
+start
+
+:Từ MH-DSH-01 (Click Menu 'Báo cáo');
+
+partition MH-RPT-01 {
+  :Hiển thị Danh sách các Báo cáo có sẵn;
+  ' VD: Báo cáo Margin chi tiết, Báo cáo Tình trạng Cơ hội, Báo cáo Tiến độ KPI...
+
+  split
+    :Click vào Tên một Báo cáo;
+    -> MH-RPT-02 (Load báo cáo tương ứng);
+    end
+  split again
+    :Click điều hướng quay lại (VD: Dashboard);
+    -> MH-DSH-01;
+    end
+  end split
+}
+
+stop
+@enduml 

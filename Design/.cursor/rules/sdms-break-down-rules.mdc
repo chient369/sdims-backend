@@ -1,0 +1,153 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Task Breakdown Rules for Python (Serverless) and React
+
+You are an expert project manager and software architect. Given a technical design document, your task is to break it down into a comprehensive, actionable checklist of smaller tasks for a system developed using **Python** for the backend (deployed on AWS Serverless) and **React** for the frontend. This checklist should be suitable for assigning to developers and tracking progress.
+
+## Input
+
+You will receive a Markdown document representing the technical design of a feature or component. This document will follow the structure outlined in the "Documentation Style" section (Overview, Purpose, Design, Dependencies, Usage, Error Handling, Open Questions).
+
+## Output
+
+Generate a Markdown checklist representing the task breakdown, tailored for a Python (Serverless) and React-based system on AWS.
+
+## Guidelines
+
+1.  **Granularity:** Tasks should be small enough to be completed within a few hours to a day. Avoid tasks that are too large or vague.
+2.  **Actionable:** Each task should describe a specific, concrete action using verbs like "Create", "Implement", "Add", "Update", "Refactor", "Test", "Document", etc.
+3.  **Dependencies:** Clearly identify dependencies between tasks (via ordering or explicit notes).
+4.  **Completeness:** The checklist should cover all aspects of the technical design, including:
+    * Database schema changes (e.g., ORM models, migration scripts - tailored for the chosen database like RDS or DynamoDB).
+    * Backend logic implementation (Python functions/classes, often within AWS Lambda handlers).
+    * API Gateway configuration and integration with Lambda.
+    * Frontend UI changes (React components, hooks, state management).
+    * Unit and integration tests (e.g., Pytest/unittest for backend, Jest/React Testing Library for frontend).
+    * AWS Serverless infrastructure setup/configuration (e.g., Lambda, API Gateway, IAM roles, database access).
+    * Documentation updates (API docs, README, component docs).
+    * Addressing open questions.
+5.  **Clarity:** Use clear, concise language tailored to the Python, React, and AWS Serverless ecosystems.
+6.  **Checklist Format:** Use Markdown checklist syntax:
+    ```markdown
+    - [ ] Task 1: Description of task 1
+    - [ ] Task 2: Description of task 2 (depends on Task 1)
+    ```
+7.  **Categorization:** Group tasks into categories such as "Backend: Database", "Backend: API/Lambda", "Infrastructure (AWS Serverless)", "Frontend", "Testing", and "Documentation" for clarity.
+8.  **Prioritization:** Indicate high-priority tasks with "(High Priority)" where applicable.
+9.  **Technology-Specific Guidelines:**
+    * **Backend (Python on AWS Serverless):**
+        * Design Lambda functions for specific API endpoints or tasks.
+        * Use an ORM (e.g., SQLAlchemy, PynamoDB if using DynamoDB) or direct client libraries for database interactions.
+        * Use database migration tools (e.g., Alembic if using RDS) or manage schema changes appropriately for the chosen database.
+        * Implement request validation (e.g., using Pydantic).
+        * Handle errors gracefully within Lambda handlers, returning appropriate API Gateway responses.
+        * Consider cold starts and connection pooling for database interactions in Lambda.
+        * Write tests using Pytest or unittest, potentially with libraries like `moto` for AWS service mocking.
+    * **Frontend (React):**
+        * Use functional components and hooks.
+        * Use Tailwind CSS for styling (via CDN or npm).
+        * Manage state with React Context or Redux (if complex).
+        * Use Axios or the Fetch API for API calls.
+        * Write tests with Jest and React Testing Library.
+        * Avoid `<form>` onSubmit due to sandbox restrictions; use event handlers instead.
+        * Use `className` instead of `class` in JSX.
+
+## Example
+
+**Input (Technical Design Document - Excerpt):**
+
+```markdown
+## CreateCategoryFeature
+
+**Overview:** This feature allows administrators to create new configuration categories via a web form.
+
+**Purpose:** To provide a user interface and backend logic for defining new categories for organizing configuration items.
+
+**Design:**
+- Frontend: A form with input fields for category name and description. Submitting the form sends a POST request to the backend API.
+- Backend: An API endpoint that receives the category data, validates it, checks for existing categories with the same name in the database, creates a new category record, and returns the ID of the created category. This logic will run within an AWS Lambda function triggered by API Gateway.
+- Database: A table `configuration_categories` with columns `id` (UUID), `name` (unique string), and `description` (string).
+
+**Dependencies:**
+- Database table `configuration_categories`.
+- Backend API endpoint (Lambda function + API Gateway).
+
+**Usage:**
+User fills out the form in the UI and clicks submit.
+
+**Error Handling:**
+- Frontend: Display validation errors for missing/invalid input. Display backend errors (e.g., category name already exists).
+- Backend: Return HTTP 400 if input validation fails. Return HTTP 409 (Conflict) if a category with the same name exists. Return HTTP 201 with the created category ID on success.
+
+**Open Questions:**
+- Should the frontend allow editing existing categories? (Out of scope for this feature, but consider future design).
+- What validation rules should apply to the category name (e.g., character set, length)?
+
+**Output (Task Breakdown):**
+## Task Breakdown: CreateCategoryFeature
+
+**Infrastructure (AWS Serverless)**
+
+- [ ] Task 1: Define or update AWS SAM/CloudFormation/CDK template for the `createCategory` Lambda function. (High Priority)
+- [ ] Task 2: Configure API Gateway to route POST `/categories` requests to the `createCategory` Lambda function. (High Priority, depends on Task 1)
+- [ ] Task 3: Define necessary IAM permissions for the `createCategory` Lambda function (e.g., read/write to database). (High Priority, depends on Task 1)
+- [ ] Task 4: Ensure database (RDS/DynamoDB) is accessible from the Lambda function (VPC configuration if needed).
+
+**Backend: Database**
+
+- [ ] Task 5: Define `ConfigurationCategory` model using the chosen ORM (e.g., SQLAlchemy model or PynamoDB model). (High Priority)
+- [ ] Task 6: Create/update database migration script (e.g., Alembic script or equivalent) to create the `configuration_categories` table with `id`, `name`, `description`, and a unique constraint on `name`. (High Priority, depends on Task 5)
+
+**Backend: API/Lambda**
+
+- [ ] Task 7: Create Python file for the `createCategory` Lambda handler function. (High Priority)
+- [ ] Task 8: Implement logic within the Lambda handler to parse incoming API Gateway event body.
+- [ ] Task 9: Implement request validation for `name` and `description` (e.g., using Pydantic).
+- [ ] Task 10: Implement database logic to check if a category with the same name already exists.
+- [ ] Task 11: Implement database logic to create and save a new `ConfigurationCategory` record.
+- [ ] Task 12: Structure the Lambda response with appropriate HTTP status codes (201, 400, 409) and body.
+- [ ] Task 13: Implement error handling within the Lambda function for validation errors, database conflicts, and other potential issues.
+- [ ] Task 14: Add logging for debugging and monitoring within the Lambda function.
+
+**Backend: Testing**
+
+- [ ] Task 15: Write unit tests for the request validation logic. (Pytest/unittest)
+- [ ] Task 16: Write unit tests for the database interaction logic (mocking the ORM/database client). (Pytest/unittest, mock)
+- [ ] Task 17: Write integration test for the Lambda handler, simulating an API Gateway event. (Pytest/unittest)
+    - [ ] Test success case (HTTP 201).
+    - [ ] Test validation failure case (HTTP 400).
+    - [ ] Test duplicate name case (HTTP 409).
+
+**Frontend**
+
+- [ ] Task 18: Create `CategoryForm` React component.
+    - [ ] Use Tailwind CSS for styling.
+    - [ ] Include input fields for `name` and `description`.
+    - [ ] Add a submit button with click handler (avoid `<form>` onSubmit).
+    - [ ] Implement state management for form inputs.
+- [ ] Task 19: Implement API call from `CategoryForm` using Axios/Fetch to POST to the API Gateway endpoint `/categories`.
+- [ ] Task 20: Add client-side validation for form inputs (e.g., required fields).
+- [ ] Task 21: Display validation error messages next to form fields.
+- [ ] Task 22: Handle API response in the frontend:
+    - [ ] Display success message on HTTP 201.
+    - [ ] Display error message for HTTP 400/409 and other errors.
+- [ ] Task 23: Write unit tests for `CategoryForm` using Jest and React Testing Library.
+    - [ ] Test rendering of form inputs and button.
+    - [ ] Test input state updates.
+    - [ ] Test client-side validation display.
+    - [ ] Test API call on submit (mocking Axios/Fetch).
+    - [ ] Test success/error message display based on mock API response.
+
+**Documentation**
+
+- [ ] Task 24: Update API documentation (e.g., Swagger/OpenAPI) for POST `/categories` including request/response schemas and error codes.
+- [ ] Task 25: Update README with instructions for setting up the backend infrastructure (if manual steps are required).
+- [ ] Task 26: Document `CategoryForm` component usage in frontend documentation.
+
+**Open Questions**
+
+- [ ] Task 27: Resolve open question: What validation rules should apply to the category name? (Discuss with stakeholders, update backend/frontend validation tasks accordingly).
+- [ ] Task 28: Document decision on open question regarding editing existing categories (No action required for this feature, but document for future reference).

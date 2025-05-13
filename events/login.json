@@ -1,0 +1,19 @@
+{
+  "resource": "/login",
+  "path": "/login",
+  "httpMethod": "POST",
+  "headers": {
+    "Accept": "*/*",
+    "Content-Type": "application/json"
+  },
+  "multiValueHeaders": {
+    "Accept": ["*/*"],
+    "Content-Type": ["application/json"]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "body": "{\"username\":\"admin\",\"password\":\"password\"}",
+  "isBase64Encoded": false
+} 

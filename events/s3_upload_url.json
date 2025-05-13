@@ -1,0 +1,18 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /api/v1/files/upload-url",
+  "rawPath": "/api/v1/files/upload-url",
+  "rawQueryString": "",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "requestContext": {
+    "http": {
+      "method": "POST",
+      "path": "/api/v1/files/upload-url"
+    },
+    "requestId": "test-s3-upload-url"
+  },
+  "body": "{\"fileName\":\"test-document.pdf\",\"contentType\":\"application/pdf\",\"folderPath\":\"contracts\"}",
+  "isBase64Encoded": false
+} 

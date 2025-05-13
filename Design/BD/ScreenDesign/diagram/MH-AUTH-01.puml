@@ -1,0 +1,29 @@
+@startuml MH-AUTH-01_Login
+!theme materia
+
+title Luồng Màn hình MH-AUTH-01: Đăng nhập
+
+start
+
+:Truy cập Hệ thống;
+
+partition MH-AUTH-01 {
+  :Hiển thị Form Đăng nhập;
+  :Người dùng nhập Tên đăng nhập & Mật khẩu;
+  :Click nút 'Đăng nhập';
+  :Hệ thống Xác thực;
+  
+  if (Xác thực Thành công?) then (yes)
+    -> MH-DSH-01;
+    end
+  else (no)
+    :Hiển thị Thông báo lỗi;
+    -> MH-AUTH-01;
+    end
+  endif
+}
+
+
+stop
+
+@enduml 

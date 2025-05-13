@@ -1,0 +1,21 @@
+{
+  "version": "2.0",
+  "routeKey": "GET /api/v1/files/download-url",
+  "rawPath": "/api/v1/files/download-url",
+  "rawQueryString": "key=contracts/1684123456-test-document.pdf",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "queryStringParameters": {
+    "key": "contracts/1684123456-test-document.pdf"
+  },
+  "requestContext": {
+    "http": {
+      "method": "GET",
+      "path": "/api/v1/files/download-url"
+    },
+    "requestId": "test-s3-download-url"
+  },
+  "body": null,
+  "isBase64Encoded": false
+} 

@@ -1,0 +1,46 @@
+@startuml MH-ADM-03_Admin_Configuration
+!theme materia
+
+title Luồng Màn hình MH-ADM-03: (Admin) Cấu hình Hệ thống
+
+start
+
+:Từ MH-DSH-01 (Click Menu 'Quản trị' -> 'Cấu hình');
+' Hoặc từ menu Admin riêng
+
+partition MH-ADM-03 {
+  :Hiển thị Form Cấu hình Hệ thống;
+  ' Sections: Danh mục (Skills - có link đến MH-HRM-04), Ngưỡng Cảnh báo, API Hubspot, KPI Sales (có link đến MH-CTR-05)...
+
+  split
+    :Admin chỉnh sửa các giá trị cấu hình;
+    ' VD: Thay đổi ngưỡng Margin Red, nhập API Key Hubspot...
+    :Click nút 'Lưu Cấu hình';
+    :Validate dữ liệu cấu hình;
+    if (Validation OK?) then (yes)
+      :Lưu các thay đổi cấu hình;
+      :Hiển thị thông báo thành công;
+      -> MH-ADM-03;
+      end
+    else (no)
+      :Hiển thị lỗi Validation;
+      -> MH-ADM-03;
+      end
+    endif
+  split again
+    :Click link 'Quản lý Skills';
+    -> MH-HRM-04;
+    end
+  split again
+    :Click link 'Quản lý KPI Sales';
+    -> MH-CTR-05;
+    end
+  split again
+    :Click điều hướng quay lại (VD: Dashboard Admin);
+    -> MH-ADM-Main; ' Màn hình Admin chính hoặc Dashboard
+    end
+  end split
+}
+
+stop
+@enduml 

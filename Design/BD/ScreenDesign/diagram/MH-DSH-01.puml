@@ -1,0 +1,59 @@
+@startuml
+!theme materia
+
+title Luồng Màn hình MH-DSH-01: Dashboard Tổng quan
+
+skinparam backgroundColor transparent
+
+start
+
+:Từ MH-AUTH-01 (Đăng nhập thành công);
+' Hoặc từ các luồng khác quay lại Dashboard
+
+partition MH-DSH-01 {
+  :Hiển thị Dashboard;
+  ' Các widget: Nhân sự Bench, Cơ hội mới, Margin, Doanh thu...
+
+  split
+    :Click Menu 'Nhân sự';
+    -> MH-HRM-01;
+    end
+  split again
+    :Click Menu 'Margin';
+    ' (Kiểm tra quyền)
+    if (Có quyền?) then (yes)
+      -> MH-MGN-01;
+      end
+    else (no)
+      stop
+    endif
+  split again
+    :Click Menu 'Cơ hội';
+    -> MH-OPP-01;
+    end
+  split again
+    :Click Menu 'Hợp đồng';
+    -> MH-CTR-01;
+    split again
+    :Click Menu 'Báo cáo';
+    -> MH-RPT-01;
+    split again
+    :Click Menu 'Quản trị';
+    if (Có quyền Admin?) then (yes)
+      -> MH-ADM-01;
+      end
+    else (no)
+      stop
+    endif
+  split again
+    :Click Widget\n(VD: 'Nhân sự Bench');
+    -> MH-HRM-01 (filtered); 
+    split again
+    :Click 'Đăng xuất';
+    -> MH-AUTH-01;
+    end
+  end split
+}
+
+stop
+@enduml
