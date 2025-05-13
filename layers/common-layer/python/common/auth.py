@@ -1,7 +1,8 @@
 """
-Authentication Utilities for SDIMS
+Authentication and Authorization Module.
 
-This module provides utilities for authentication and authorization.
+This module provides utilities for handling JWT tokens, permissions,
+and user authentication/authorization.
 """
 
 import os
@@ -9,11 +10,11 @@ import json
 import time
 from typing import Dict, Any, List, Optional, Union, Tuple
 import jwt
-from datetime import datetime, timedelta
+from aws_lambda_powertools import Logger
+from .errors import AuthenticationError, AuthorizationError
 
-from common.logger import Logger
-
-logger = Logger(service="auth-utils")
+# Initialize logger
+logger = Logger()
 
 class TokenType:
     """Token types"""
@@ -166,6 +167,10 @@ class AuthUtils:
             # Check token type if required
             if required_type and payload.get('type') != required_type:
                 raise InvalidTokenError(f"Expected {required_type} token, got {payload.get('type')}")
+                
+            # Check if token is expired
+            if 'exp' in payload and payload['exp'] < time.time():
+                raise TokenExpiredError('Token has expired')
                 
             return payload
         except jwt.ExpiredSignatureError:
@@ -399,3 +404,106 @@ class AuthUtils:
         except Exception as e:
             logger.error("Error verifying password", exc=e)
             return False 
+
+def verify_token(token: str, secret_key: str) -> Dict[str, any]:
+    """
+    Verify and decode a JWT token.
+    
+    Args:
+        token: JWT token to verify
+        secret_key: Secret key used to sign the token
+        
+    Returns:
+        Decoded token payload
+        
+    Raises:
+        AuthenticationError: If token is invalid or expired
+    """
+    try:
+        payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+        
+        # Check if token is expired
+        if 'exp' in payload and payload['exp'] < time.time():
+            raise AuthenticationError('Token has expired')
+            
+        return payload
+    except jwt.InvalidTokenError as e:
+        logger.error('Token validation failed', error=str(e))
+        raise AuthenticationError('Invalid token')
+
+def get_user_permissions(user_id: str) -> List[str]:
+    """
+    Get permissions for a user from the database.
+    
+    Args:
+        user_id: ID of the user
+        
+    Returns:
+        List of permission strings
+    """
+    # TODO: Implement permission lookup from database
+    # This is a placeholder that should be replaced with actual implementation
+    return []
+
+def check_permission(required_permission: str, user_permissions: List[str]) -> None:
+    """
+    Check if user has required permission.
+    
+    Args:
+        required_permission: Permission to check for
+        user_permissions: List of user's permissions
+        
+    Raises:
+        AuthorizationError: If user lacks required permission
+    """
+    if required_permission not in user_permissions:
+        raise AuthorizationError(f'Missing required permission: {required_permission}')
+
+def generate_token(user_id: str, permissions: List[str], secret_key: str, expiry: int = 3600) -> str:
+    """
+    Generate a JWT token for a user.
+    
+    Args:
+        user_id: ID of the user
+        permissions: List of user's permissions
+        secret_key: Secret key to sign the token
+        expiry: Token expiry time in seconds (default 1 hour)
+        
+    Returns:
+        Generated JWT token
+    """
+    payload = {
+        'sub': user_id,
+        'permissions': permissions,
+        'iat': int(time.time()),
+        'exp': int(time.time()) + expiry
+    }
+    
+    return jwt.encode(payload, secret_key, algorithm='HS256')
+
+def get_current_user(event: Dict[str, any], secret_key: str) -> Dict[str, any]:
+    """
+    Get current user from API Gateway event.
+    
+    Args:
+        event: API Gateway event
+        secret_key: Secret key to verify token
+        
+    Returns:
+        User information from token
+        
+    Raises:
+        AuthenticationError: If authentication fails
+    """
+    try:
+        headers = event.get('headers', {})
+        if not headers:
+            raise AuthenticationError('Missing headers')
+            
+        auth_header = headers.get('Authorization') or headers.get('authorization')
+        token = AuthUtils.extract_token_from_header(auth_header)
+        
+        return AuthUtils.verify_token(token)
+    except Exception as e:
+        logger.error('Authentication failed', error=str(e))
+        raise AuthenticationError('Authentication failed') 

@@ -6,4 +6,9 @@ jsonschema==4.18.0
 email-validator==2.0.0
 phonenumbers==8.13.9
 urllib3==1.26.16
-requests==2.31.0 
+requests==2.31.0
+python-magic==0.4.27
+Pillow==10.0.0
+pandas==2.0.3
+openpyxl==3.1.2
+python-magic-bin==0.4.14; sys_platform == 'win32' 
