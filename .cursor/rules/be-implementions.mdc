@@ -21,10 +21,11 @@ This document outlines the standards and procedures for executing backend tasks 
         - Design\DD\API\API-xxx-xxx.md : API Details of descriptions
 
 2. **Create Git Branch**
-   - Create a new branch for each task
+   - Create a new branch for each task.
    - Branch naming convention: `feature/BE-<TASK-ID>-<short-description>`
      - Example: `feature/BE-1234-add-user-authentication`
    - Use lowercase and hyphens for readability
+   - Run cmd: `git checkout -b feature/BE-1234-add-user-authentication`
 
 3. **Implement Task**
    - Write unit tests before coding
@@ -51,8 +52,7 @@ This document outlines the standards and procedures for executing backend tasks 
 6. **Git Workflow**
    - Commit changes with clear messages referencing task ID
      - Example: `Add user authentication endpoint (BE-1234)`
-   - Push branch to remote repository
-   - Create a pull request (PR) for review
+   - Run cmd: `git commit -m "Add user authentication endpoint (BE-1234)"`
 
 7. **CI/CD**
    - Ensure CI pipeline passes (tests, linter, security checks)

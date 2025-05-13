@@ -19,7 +19,7 @@ Tài liệu này phân tích và chia nhỏ công việc phát triển backend c
   - Cấu hình môi trường (staging, production)
   - Định nghĩa các parameter và tài nguyên chung
 
-- [ ] **BE-INF-002**: Xây dựng CI/CD pipeline cho deployment (High Priority)
+- [x] **BE-INF-002**: Xây dựng CI/CD pipeline cho deployment (High Priority)
   - Cấu hình GitHub Actions/AWS CodePipeline 
   - Thiết lập quy trình deploy tự động cho các môi trường
 
@@ -37,7 +37,7 @@ Tài liệu này phân tích và chia nhỏ công việc phát triển backend c
   - Thiết lập các API stages
   - Cấu hình CORS, response/request mapping templates
 
-- [x] **BE-INF-006**: Cài đặt monitoring và logging (Medium Priority)
+- [ ] **BE-INF-006**: Cài đặt monitoring và logging (Medium Priority)
   - Thiết lập CloudWatch alarms
   - Cấu hình X-Ray tracing
   - Tích hợp logging framework
@@ -48,35 +48,67 @@ Tài liệu này phân tích và chia nhỏ công việc phát triển backend c
 
 ## Core Services & Libraries
 
-- [x] **BE-CORE-001**: Xây dựng lớp truy xuất DynamoDB (High Priority)
-  - Tạo utility classes cho CRUD operations
-  - Triển khai các hàm truy vấn theo access patterns
-  - Cài đặt pagination và filtering
+- [x] **BE-CORE-001**: Phát triển Common Services Utilities (High Priority)
+  - Xây dựng lớp DynamoDB Repository cho CRUD operations
+  - Phát triển utility classes cho response handling
+  - Tạo các utility cho error handling và logging
+  - Thiết lập Lambda Layer cho common utilities
 
-- [ ] **BE-CORE-002**: Phát triển service authentication và authorization (High Priority)
-  - Tích hợp Lambda Authorizer
+- [x] **BE-CORE-002**: Phát triển Model Mapping Utilities (High Priority)
+  - Tạo cơ chế chuyển đổi giữa DynamoDB items và Python objects
+  - Phát triển decorators và annotations cho data mapping
+  - Xây dựng type converters cho các kiểu dữ liệu khác nhau
+  - Tích hợp với DynamoDB Repository
+
+- [x] **BE-CORE-003**: Phát triển API Validation Framework (High Priority)
+  - Xây dựng schema validation component
+  - Phát triển rule-based validation component
+  - Tạo validation decorators cho Lambda handlers
+  - Chuẩn hóa error responses
+
+- [ ] **BE-CORE-004**: Phát triển Event Bus & Message Queue (Medium Priority)
+  - Triển khai các utilities để tích hợp với SNS/SQS
+  - Tạo cơ chế publish/subscribe cho các sự kiện hệ thống
+  - Xây dựng handler cho async processing
+  - Implement retry mechanism và dead-letter queue
+
+- [x] **BE-CORE-005**: Phát triển File Storage Utilities (Medium Priority)
+  - Xây dựng APIs upload/download file từ S3
+  - Tạo cơ chế quản lý metadata của file
+  - Phát triển tiện ích xử lý file (tạo thumbnail, validate)
+  - Triển khai access control cho file
+
+- [x] **BE-CORE-006**: Phát triển API Gateway Integration Utilities (Medium Priority)
+  - Tạo các utilities để xử lý API Gateway events
+  - Phát triển middleware cho request/response processing
+  - Xây dựng cơ chế routing và endpoint discovery
+  - Tích hợp với validation framework
+
+- [ ] **BE-CORE-007**: Phát triển Database Migration Framework (Low Priority)
+  - Xây dựng cơ chế version control cho database schema
+  - Tạo utilities để thực hiện data migration
+  - Phát triển tools cho schema verification
+  - Triển khai cơ chế backup và rollback
+
+## Business Logic & Services
+
+- [ ] **BE-BIZ-001**: Xây dựng service cho business rules và calculations (Medium Priority)
+  - Tính toán Margin từ cost và revenue
+  - Xác định trạng thái Follow-up (Red/Yellow/Green)
+  - Tính toán utilization rate của nhân viên
+  - Phát triển các business rule engines
+
+- [ ] **BE-BIZ-002**: Phát triển service notification (Low Priority)
+  - Xây dựng template engine cho email
+  - Tích hợp với dịch vụ gửi email (SES)
+  - Phát triển in-app notifications
+  - Tạo scheduler cho các thông báo định kỳ
+
+- [ ] **BE-BIZ-003**: Phát triển service authentication và authorization (High Priority)
+  - Tích hợp Lambda Authorizer cho API Gateway
   - Triển khai JWT handling và validation
   - Phát triển role-based access control
-
-- [ ] **BE-CORE-003**: Xây dựng middleware cho Lambda functions (High Priority)
-  - Validation input/output
-  - Error handling
-  - Logging
-
-- [ ] **BE-CORE-004**: Triển khai hệ thống lưu trữ file (Medium Priority)
-  - APIs upload/download file từ S3
-  - Quản lý metadata của file
-  - Xử lý access control cho file
-
-- [ ] **BE-CORE-005**: Xây dựng service cho business rules và calculations (Medium Priority)
-  - Tính toán Margin
-  - Xác định trạng thái Follow-up
-  - Tính utilization rate
-
-- [ ] **BE-CORE-006**: Phát triển service notification (Low Priority)
-  - Gửi email notifications
-  - Push notifications
-  - Lambda triggers cho sự kiện cần thông báo
+  - Xây dựng cơ chế refresh token
 
 ## Authentication & Authorization
 
