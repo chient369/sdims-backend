@@ -14,6 +14,11 @@ Globals:
         LOG_LEVEL: INFO
         STAGE: !Ref Stage
         TABLE_NAME: !Ref SDIMSTable
+  Api:
+    Cors:
+      AllowMethods: "'*'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: "'*'"
 
 # Parameters
 Parameters:
@@ -53,8 +58,8 @@ Parameters:
     
   JWTSecret:
     Type: String
-    Default: "your-secret-key-change-in-production"
-    Description: Secret key used for JWT token generation and validation
+    Default: "temporary_secret_key_replace_in_production"
+    Description: Secret key for signing JWT tokens
     NoEcho: true
 
   CertificateArn:
@@ -64,444 +69,73 @@ Parameters:
 
 # Resources
 Resources:
-  # Lambda Functions sẽ được định nghĩa ở đây
-  CommonLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: common-layer
-      Description: Common utilities layer
-      ContentUri: layers/common-layer/
-      CompatibleRuntimes:
-        - python3.13
-      RetentionPolicy: Retain
-  
-  # Lambda Authorizer Function
-  AuthorizerFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/auth/
-      Handler: authorizer.handler
-      Runtime: python3.13
-      Environment:
-        Variables:
-          JWT_SECRET: !Ref JWTSecret
-          LOG_LEVEL: INFO
-      Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - 'logs:CreateLogGroup'
-                - 'logs:CreateLogStream'
-                - 'logs:PutLogEvents'
-              Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
-      Layers:
-        - !Ref CommonLayer
-  
-  # S3 Buckets
-  AttachmentsBucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
-    Properties:
-      BucketName: !Sub "sdims-attachments-${Stage}-${AWS::AccountId}"
-      VersioningConfiguration:
-        Status: Enabled
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      CorsConfiguration:
-        CorsRules:
-          - AllowedHeaders:
-              - "*"
-            AllowedMethods:
-              - GET
-              - PUT
-              - POST
-              - DELETE
-              - HEAD
-            AllowedOrigins:
-              - !Sub "https://${WebsiteDomainName}"
-            MaxAge: 3600
-      LifecycleConfiguration:
-        Rules:
-          - Id: TransitionToIA
-            Status: Enabled
-            Transitions:
-              - TransitionInDays: 30
-                StorageClass: STANDARD_IA
-  
-  ProfileImagesBucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
-    Properties:
-      BucketName: !Sub "sdims-profile-images-${Stage}-${AWS::AccountId}"
-      VersioningConfiguration:
-        Status: Enabled
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      CorsConfiguration:
-        CorsRules:
-          - AllowedHeaders:
-              - "*"
-            AllowedMethods:
-              - GET
-              - PUT
-              - POST
-              - DELETE
-              - HEAD
-            AllowedOrigins:
-              - !Sub "https://${WebsiteDomainName}"
-            MaxAge: 3600
-      LifecycleConfiguration:
-        Rules:
-          - Id: TransitionToIA
-            Status: Enabled
-            Transitions:
-              - TransitionInDays: 30
-                StorageClass: STANDARD_IA
-  
-  BackupBucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
-    Properties:
-      BucketName: !Sub "sdims-backups-${Stage}-${AWS::AccountId}"
-      VersioningConfiguration:
-        Status: Enabled
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      LifecycleConfiguration:
-        Rules:
-          - Id: ExpireOldBackups
-            Status: Enabled
-            ExpirationInDays: 365
-  
-  # S3 Bucket Policies
-  AttachmentsBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref AttachmentsBucket
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Deny
-            Principal: '*'
-            Action: 's3:*'
-            Resource:
-              - !Sub "${AttachmentsBucket.Arn}/*"
-              - !Sub "${AttachmentsBucket.Arn}"
-            Condition:
-              Bool:
-                aws:SecureTransport: false
-  
-  ProfileImagesBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref ProfileImagesBucket
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Deny
-            Principal: '*'
-            Action: 's3:*'
-            Resource:
-              - !Sub "${ProfileImagesBucket.Arn}/*"
-              - !Sub "${ProfileImagesBucket.Arn}"
-            Condition:
-              Bool:
-                aws:SecureTransport: false
-  
-  BackupBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref BackupBucket
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Deny
-            Principal: '*'
-            Action: 's3:*'
-            Resource:
-              - !Sub "${BackupBucket.Arn}/*"
-              - !Sub "${BackupBucket.Arn}"
-            Condition:
-              Bool:
-                aws:SecureTransport: false
-  
-  # Lambda Function cho file upload URL
-  CreateUploadUrlFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/
-      Handler: files.create_upload_url.handler
-      Description: Creates presigned URLs for file uploads
-      Environment:
-        Variables:
-          ATTACHMENTS_BUCKET: !Ref AttachmentsBucket
-      Policies:
-        - S3CrudPolicy:
-            BucketName: !Ref AttachmentsBucket
-      Events:
-        ApiEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/files/upload-url
-            Method: post
-            RestApiId: !Ref SDIMSApi
-      Layers:
-        - !Ref CommonLayer
-  
-  # Lambda Function cho file download URL
-  CreateDownloadUrlFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/
-      Handler: files.download_file_url.handler
-      Description: Creates presigned URLs for file downloads
-      Environment:
-        Variables:
-          ATTACHMENTS_BUCKET: !Ref AttachmentsBucket
-      Policies:
-        - S3ReadPolicy:
-            BucketName: !Ref AttachmentsBucket
-      Events:
-        ApiEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/files/download-url
-            Method: get
-            RestApiId: !Ref SDIMSApi
-      Layers:
-        - !Ref CommonLayer
-  
-  # API Gateway Definition
-  SDIMSApi:
+  # API Gateway
+  ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
       StageName: !Ref Stage
       EndpointConfiguration: REGIONAL
-      Auth:
-        DefaultAuthorizer: LambdaTokenAuthorizer
-        Authorizers:
-          LambdaTokenAuthorizer:
-            FunctionPayloadType: TOKEN
-            FunctionArn: !GetAtt AuthorizerFunction.Arn
-            Identity:
-              Header: Authorization
-      DefinitionBody:
-        swagger: "2.0"
-        info:
-          title: !Sub "SDIMS API - ${Stage}"
-          version: "1.0.0"
-        paths:
-          # Paths được định nghĩa trong các lambda functions
-      Cors:
-        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
-        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-        AllowOrigin: !Sub "'https://${WebsiteDomainName}'"
-        MaxAge: "'3600'"
-        AllowCredentials: "'true'"
-      GatewayResponses:
-        DEFAULT_4XX:
-          ResponseParameters:
-            Headers:
-              Access-Control-Allow-Origin: !Sub "'https://${WebsiteDomainName}'"
-              Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-              Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
-              Access-Control-Allow-Credentials: "'true'"
-        DEFAULT_5XX:
-          ResponseParameters:
-            Headers:
-              Access-Control-Allow-Origin: !Sub "'https://${WebsiteDomainName}'"
-              Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-              Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
-              Access-Control-Allow-Credentials: "'true'"
-      AccessLogSetting:
-        DestinationArn: !GetAtt APIGatewayAccessLogGroup.Arn
-        Format: '{"requestId":"$context.requestId", "ip":"$context.identity.sourceIp", "caller":"$context.identity.caller", "user":"$context.identity.user", "requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod", "resourcePath":"$context.resourcePath", "status":"$context.status", "protocol":"$context.protocol", "responseLength":"$context.responseLength"}'
-
-  # API Gateway Access Logs
-  APIGatewayAccessLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/apigateway/${SDIMSApi}-${Stage}-access-logs"
-      RetentionInDays: 90
+      TracingEnabled: true
       
-  # API Gateway Custom Domain (Optional)
-  APIDomainName:
-    Type: AWS::ApiGateway::DomainName
+  # Lambda Layers
+  CommonLayer:
+    Type: AWS::Serverless::LayerVersion
     Properties:
-      DomainName: !Sub "api.${WebsiteDomainName}"
-      EndpointConfiguration:
-        Types:
-          - REGIONAL
-      RegionalCertificateArn: !Ref CertificateArn
-        
-  APIMapping:
-    Type: AWS::ApiGateway::BasePathMapping
-    Properties:
-      DomainName: !Ref APIDomainName
-      RestApiId: !Ref SDIMSApi
-      Stage: !Ref Stage
-      
-  # Web Application Firewall (WAF) for API Gateway
-  ApiGatewayWaf:
-    Type: AWS::WAFv2::WebACL
-    Properties:
-      Name: !Sub "${AWS::StackName}-api-waf"
-      Scope: REGIONAL
-      DefaultAction:
-        Allow: {}
-      VisibilityConfig:
-        SampledRequestsEnabled: true
-        CloudWatchMetricsEnabled: true
-        MetricName: !Sub "${AWS::StackName}-api-waf-metrics"
-      Rules:
-        - Name: AWSManagedRulesCommonRuleSet
-          Priority: 0
-          OverrideAction:
-            None: {}
-          VisibilityConfig:
-            SampledRequestsEnabled: true
-            CloudWatchMetricsEnabled: true
-            MetricName: AWSManagedRulesCommonRuleSetMetric
-          Statement:
-            ManagedRuleGroupStatement:
-              VendorName: AWS
-              Name: AWSManagedRulesCommonRuleSet
-        - Name: AWSManagedRulesSQLiRuleSet
-          Priority: 1
-          OverrideAction:
-            None: {}
-          VisibilityConfig:
-            SampledRequestsEnabled: true
-            CloudWatchMetricsEnabled: true
-            MetricName: AWSManagedRulesSQLiRuleSetMetric
-          Statement:
-            ManagedRuleGroupStatement:
-              VendorName: AWS
-              Name: AWSManagedRulesSQLiRuleSet
+      ContentUri: src/layers/commonLayer/
+      CompatibleRuntimes:
+        - python3.13
+      LayerName: sdims-common-layer
+      Description: Common utilities, models, and errors for SDIMS
   
-  # Association between WAF WebACL and API Gateway stage
-  ApiGatewayWafAssociation:
-    Type: AWS::WAFv2::WebACLAssociation
+  RepositoryLayer:
+    Type: AWS::Serverless::LayerVersion
     Properties:
-      ResourceArn: !Sub "arn:aws:apigateway:${AWS::Region}::/restapis/${SDIMSApi}/stages/${Stage}"
-      WebACLArn: !GetAtt ApiGatewayWaf.Arn
+      ContentUri: src/layers/repositorylayer/
+      CompatibleRuntimes:
+        - python3.13
+      LayerName: sdims-repository-layer
+      Description: DynamoDB repository layer for SDIMS
+  
+  ServiceLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: src/layers/serviceLayer/
+      CompatibleRuntimes:
+        - python3.13
+      LayerName: sdims-service-layer
+      Description: Service layer for SDIMS business logic
 
-  # Authentication Lambda Functions
+  # Lambda Functions - Auth
   LoginFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/auth/
-      Handler: auth.login_handler
-      Runtime: python3.13
-      Environment:
-        Variables:
-          JWT_SECRET: !Ref JWTSecret
-          TABLE_NAME: !Ref SDIMSTable
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref SDIMSTable
-      Events:
-        ApiEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/auth/login
-            Method: post
-            RestApiId: !Ref SDIMSApi
+      CodeUri: src/functions/auth/
+      Handler: login.lambda_handler
       Layers:
         - !Ref CommonLayer
-        
-  LogoutFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/auth/
-      Handler: auth.logout_handler
-      Runtime: python3.13
+        - !Ref RepositoryLayer
+        - !Ref ServiceLayer
       Environment:
         Variables:
           JWT_SECRET: !Ref JWTSecret
-      Events:
-        ApiEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/auth/logout
-            Method: post
-            RestApiId: !Ref SDIMSApi
-            Auth:
-              Authorizer: LambdaTokenAuthorizer
-      Layers:
-        - !Ref CommonLayer
-        
-  RefreshTokenFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/auth/
-      Handler: refresh_token.handler
-      Runtime: python3.13
-      Environment:
-        Variables:
-          JWT_SECRET: !Ref JWTSecret
-      Events:
-        ApiEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/auth/refresh-token
-            Method: post
-            RestApiId: !Ref SDIMSApi
-      Layers:
-        - !Ref CommonLayer
-        
-  MeFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/auth/
-      Handler: auth.me_handler
-      Runtime: python3.13
-      Environment:
-        Variables:
-          JWT_SECRET: !Ref JWTSecret
-          TABLE_NAME: !Ref SDIMSTable
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref SDIMSTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref SDIMSTable
       Events:
-        ApiEvent:
+        Login:
           Type: Api
           Properties:
-            Path: /api/v1/auth/me
-            Method: get
-            RestApiId: !Ref SDIMSApi
-            Auth:
-              Authorizer: LambdaTokenAuthorizer
-      Layers:
-        - !Ref CommonLayer
-  
+            RestApiId: !Ref ApiGateway
+            Path: /api/v1/auth/login
+            Method: post
+
   # DynamoDB Table
   SDIMSTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub "SDIMS-Main-${Stage}"
+      TableName: !Sub "SDIMS_Main_${Stage}"
       BillingMode: PROVISIONED
       ProvisionedThroughput:
         ReadCapacityUnits: !Ref DynamoDBReadCapacityUnits
@@ -562,101 +196,14 @@ Resources:
           ProvisionedThroughput:
             ReadCapacityUnits: !Ref DynamoDBGSIReadCapacityUnits
             WriteCapacityUnits: !Ref DynamoDBGSIWriteCapacityUnits
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
-      SSESpecification:
-        SSEEnabled: true
-      Tags:
-        - Key: Environment
-          Value: !Ref Stage
-  
-  # Auto Scaling cho DynamoDB Table
-  TableReadScalingPolicy:
-    Type: AWS::ApplicationAutoScaling::ScalingPolicy
-    Properties:
-      PolicyName: !Sub "${Stage}-read-scaling-policy"
-      PolicyType: TargetTrackingScaling
-      ScalingTargetId: !Ref TableReadScalingTarget
-      TargetTrackingScalingPolicyConfiguration:
-        PredefinedMetricSpecification:
-          PredefinedMetricType: DynamoDBReadCapacityUtilization
-        TargetValue: 70
-        ScaleInCooldown: 60
-        ScaleOutCooldown: 60
-        
-  TableReadScalingTarget:
-    Type: AWS::ApplicationAutoScaling::ScalableTarget
-    Properties:
-      MaxCapacity: 100
-      MinCapacity: 5
-      ResourceId: !Sub "table/${SDIMSTable}"
-      ScalableDimension: dynamodb:table:ReadCapacityUnits
-      ServiceNamespace: dynamodb
-      RoleARN: !GetAtt ScalingRole.Arn
-      
-  TableWriteScalingPolicy:
-    Type: AWS::ApplicationAutoScaling::ScalingPolicy
-    Properties:
-      PolicyName: !Sub "${Stage}-write-scaling-policy"
-      PolicyType: TargetTrackingScaling
-      ScalingTargetId: !Ref TableWriteScalingTarget
-      TargetTrackingScalingPolicyConfiguration:
-        PredefinedMetricSpecification:
-          PredefinedMetricType: DynamoDBWriteCapacityUtilization
-        TargetValue: 70
-        ScaleInCooldown: 60
-        ScaleOutCooldown: 60
-        
-  TableWriteScalingTarget:
-    Type: AWS::ApplicationAutoScaling::ScalableTarget
-    Properties:
-      MaxCapacity: 100
-      MinCapacity: 5
-      ResourceId: !Sub "table/${SDIMSTable}"
-      ScalableDimension: dynamodb:table:WriteCapacityUnits
-      ServiceNamespace: dynamodb
-      RoleARN: !GetAtt ScalingRole.Arn
-      
-  # Auto Scaling IAM Role
-  ScalingRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: application-autoscaling.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AmazonDynamoDBFullAccess
 
 # Outputs để export các giá trị cần thiết
 Outputs:
-  CommonLayerArn:
-    Description: "ARN of the Common Layer"
-    Value: !Ref CommonLayer
-    
-  SDIMSTableName:
-    Description: "Name of the SDIMS DynamoDB table"
-    Value: !Ref SDIMSTable
-    
-  SDIMSTableArn:
-    Description: "ARN of the SDIMS DynamoDB table"
-    Value: !GetAtt SDIMSTable.Arn
+  ApiUrl:
+    Description: URL của API
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
   
-  AttachmentsBucketName:
-    Description: "Name of the Attachments S3 bucket"
-    Value: !Ref AttachmentsBucket
-    
-  ProfileImagesBucketName:
-    Description: "Name of the Profile Images S3 bucket"
-    Value: !Ref ProfileImagesBucket
-    
-  BackupBucketName:
-    Description: "Name of the Backup S3 bucket"
-    Value: !Ref BackupBucket
+  LoginApi:
+    Description: API đăng nhập
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/api/v1/auth/login"
   
-  ApiEndpoint:
-    Description: "API Gateway endpoint URL"
-    Value: !Sub "https://${SDIMSApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}" 
