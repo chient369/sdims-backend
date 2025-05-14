@@ -64,6 +64,31 @@ class AuthUtils:
         if not jwt_secret:
             raise ValueError("JWT_SECRET environment variable is not set")
         return jwt_secret
+        
+    @staticmethod
+    def get_current_timestamp() -> int:
+        """
+        Get current timestamp in seconds
+        
+        Returns:
+            Current timestamp in seconds
+        """
+        return int(time.time())
+        
+    @staticmethod
+    def generate_token_hash(token: str) -> str:
+        """
+        Generate a hash of the token for storage in blacklist
+        
+        Args:
+            token: JWT token
+            
+        Returns:
+            Hash of the token
+        """
+        import hashlib
+        # Use SHA-256 to create a consistent hash of the token
+        return hashlib.sha256(token.encode()).hexdigest()
     
     @staticmethod
     def create_token(user_id: str, name: str, email: str, 

@@ -411,41 +411,36 @@ Resources:
       ResourceArn: !Sub "arn:aws:apigateway:${AWS::Region}::/restapis/${SDIMSApi}/stages/${Stage}"
       WebACLArn: !GetAtt ApiGatewayWaf.Arn
 
-  # Authentication Lambda Functions
-  LoginFunction:
+  # Authentication Lambda Function
+  AuthFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/auth/
-      Handler: auth.login_handler
+      Handler: auth_handler.handler
       Runtime: python3.13
+      Description: Common Lambda function for all authentication endpoints
       Environment:
         Variables:
           JWT_SECRET: !Ref JWTSecret
           TABLE_NAME: !Ref SDIMSTable
+          USE_TOKEN_ROTATION: "true"
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref SDIMSTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Environment}/jwt-secret-*'
       Events:
-        ApiEvent:
+        LoginEvent:
           Type: Api
           Properties:
             Path: /api/v1/auth/login
             Method: post
             RestApiId: !Ref SDIMSApi
-      Layers:
-        - !Ref CommonLayer
-        
-  LogoutFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/auth/
-      Handler: auth.logout_handler
-      Runtime: python3.13
-      Environment:
-        Variables:
-          JWT_SECRET: !Ref JWTSecret
-      Events:
-        ApiEvent:
+        LogoutEvent:
           Type: Api
           Properties:
             Path: /api/v1/auth/logout
@@ -453,43 +448,7 @@ Resources:
             RestApiId: !Ref SDIMSApi
             Auth:
               Authorizer: LambdaTokenAuthorizer
-      Layers:
-        - !Ref CommonLayer
-        
-  RefreshTokenFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/auth/
-      Handler: refresh_token.handler
-      Runtime: python3.13
-      Environment:
-        Variables:
-          JWT_SECRET: !Ref JWTSecret
-      Events:
-        ApiEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/auth/refresh-token
-            Method: post
-            RestApiId: !Ref SDIMSApi
-      Layers:
-        - !Ref CommonLayer
-        
-  MeFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/auth/
-      Handler: auth.me_handler
-      Runtime: python3.13
-      Environment:
-        Variables:
-          JWT_SECRET: !Ref JWTSecret
-          TABLE_NAME: !Ref SDIMSTable
-      Policies:
-        - DynamoDBReadPolicy:
-            TableName: !Ref SDIMSTable
-      Events:
-        ApiEvent:
+        MeEvent:
           Type: Api
           Properties:
             Path: /api/v1/auth/me
@@ -497,6 +456,12 @@ Resources:
             RestApiId: !Ref SDIMSApi
             Auth:
               Authorizer: LambdaTokenAuthorizer
+        RefreshTokenEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/auth/refresh-token
+            Method: post
+            RestApiId: !Ref SDIMSApi
       Layers:
         - !Ref CommonLayer
   
@@ -662,4 +627,37 @@ Outputs:
   
   ApiEndpoint:
     Description: "API Gateway endpoint URL"
-    Value: !Sub "https://${SDIMSApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}" 
+    Value: !Sub "https://${SDIMSApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
+
+  # Lambda Functions for Opportunity Management
+  OpportunityHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: opportunities.handlers.handler
+      Description: Handle opportunity management APIs
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref SDIMSTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SDIMSTable
+      Events:
+        ListOpportunitiesEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/opportunities
+            Method: get
+            RestApiId: !Ref SDIMSApi
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
+        GetOpportunityEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/opportunities/{opportunity_id}
+            Method: get
+            RestApiId: !Ref SDIMSApi
+            Auth:
+              Authorizer: LambdaTokenAuthorizer
+      Layers:
+        - !Ref CommonLayer 

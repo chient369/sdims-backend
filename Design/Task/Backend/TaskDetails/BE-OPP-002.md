@@ -43,7 +43,6 @@ Chức năng này đặc biệt hữu ích cho việc khắc phục sự cố kh
 ### Triển khai Lambda function xem log đồng bộ
 
 - [ ] Phát triển Lambda function xử lý API requests:
-  - Location: src/functions/opportunity/get_sync_logs.py
   - Triển khai logic lấy dữ liệu log đồng bộ:
     - Truy vấn dữ liệu từ bảng HUBSPOT_SYNC_LOG trên DynamoDB
     - Hỗ trợ phân trang với tokenization (DynamoDB pagination)
@@ -68,7 +67,6 @@ Chức năng này đặc biệt hữu ích cho việc khắc phục sự cố kh
 ### Phát triển Data Access Layer
 
 - [ ] Xây dựng lớp truy cập dữ liệu cho logs:
-  - Location: src/models/sync_log.py
   - Định nghĩa model cho log đồng bộ
   - Triển khai các method truy vấn DynamoDB:
     - get_logs(limit, next_token, filters)
@@ -76,26 +74,6 @@ Chức năng này đặc biệt hữu ích cho việc khắc phục sự cố kh
     - get_recent_logs(limit)
   - Xử lý chuyển đổi giữa DynamoDB Item và model object
 
-### Triển khai Unit Tests
-
-- [ ] Viết unit tests:
-  - Location: tests/unit/functions/opportunity/
-  - Test case cho get_sync_logs.py:
-    - Test lấy logs với phân trang
-    - Test lọc theo thời gian
-    - Test lọc theo trạng thái
-    - Test xử lý lỗi
-  - Test case cho model:
-    - Test lấy dữ liệu từ DynamoDB
-    - Test chuyển đổi giữa DynamoDB Item và model object
-
-### Tạo Documentation
-
-- [ ] Viết tài liệu:
-  - Tài liệu API swagger cho GET /api/v1/opportunities/sync/logs
-  - Mô tả cấu trúc dữ liệu log đồng bộ
-  - Hướng dẫn sử dụng các tham số query
-  - Mô tả kết quả trả về
 
 ## Ví dụ cách sử dụng cuối cùng
 
@@ -162,8 +140,7 @@ def get_hubspot_sync_logs(api_base_url, token, page_size=10, next_token=None, fr
 
 1. Lambda function lấy và hiển thị log đồng bộ hoạt động chính xác
 2. API endpoint GET /api/v1/opportunities/sync/logs được cấu hình đúng với phân trang và bộ lọc
-3. Unit tests đạt coverage > 80%
-4. Tài liệu API đầy đủ
+3. Tài liệu API đầy đủ
 
 ## Ước tính thời gian
 

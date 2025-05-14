@@ -1,81 +1,22 @@
 """
-Authentication lambda function for SDIMS backend.
+Lambda function for getting current user information.
 """
 import os
-import json
 from typing import Dict, Any
 
-import boto3
 from aws_lambda_powertools import Logger
+from boto3.dynamodb.conditions import Key
 
-from common.auth import AuthUtility
-from common.errors import UnauthorizedError, ValidationError, handle_lambda_error
-from common.utils import parse_json_body, format_response
+from src.common.auth import AuthUtility
+from src.common.errors import UnauthorizedError, handle_lambda_error
+from src.common.utils import format_response
+from src.auth.models import User, UserStatus
 
 logger = Logger(service="auth-service")
 
-# Environment variables
-JWT_SECRET = os.environ.get("JWT_SECRET", "your-secret-key")  # In production, use AWS Secrets Manager
-
-# Initialize AuthUtility
-auth_util = AuthUtility(jwt_secret=JWT_SECRET)
-
-
-@handle_lambda_error
-def login_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """
-    Login handler for authentication.
-    
-    Args:
-        event: API Gateway event
-        context: Lambda context
-        
-    Returns:
-        API Gateway response with token
-    """
-    logger.info("Processing login request")
-    
-    # Parse request body
-    body = parse_json_body(event.get("body"))
-    
-    # Validate inputs
-    username = body.get("username")
-    password = body.get("password")
-    
-    if not username or not password:
-        logger.warning("Login failed: Missing username or password")
-        raise ValidationError("Username and password are required")
-    
-    # TODO: Replace this with actual DB lookup in DynamoDB
-    # This is a placeholder implementation
-    if username == "admin" and password == "password":
-        user_id = "user-123"
-        user_role = "admin"
-    else:
-        logger.warning(f"Login failed: Invalid credentials for username {username}")
-        raise UnauthorizedError("Invalid username or password")
-    
-    # Generate token
-    token_data = auth_util.generate_token(user_id, user_role)
-    
-    logger.info(f"Login successful for user {username}")
-    
-    # Return token
-    return format_response(
-        status_code=200,
-        body={
-            "token": token_data["token"],
-            "refresh_token": token_data["refresh_token"],
-            "expires_in": token_data["expires_in"],
-            "user": {
-                "id": user_id,
-                "username": username,
-                "role": user_role
-            }
-        }
-    )
-
-# logout_handler was moved to a separate file: logout.py
+# Initialize DynamoDB client
+dynamodb = boto3.resource("dynamodb")
+table = dynamodb.Table(os.environ.get("DYNAMODB_TABLE", "SDIMS_Main"))
 
 @handle_lambda_error
 def me_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -91,24 +32,49 @@ def me_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     logger.info("Processing get current user request")
     
-    # Get user context from the authorizor
+    # Get user context from the authorizer
     request_context = event.get("requestContext", {})
     authorizer_context = request_context.get("authorizer", {})
     
     user_id = authorizer_context.get("userId")
-    user_role = authorizer_context.get("userRole")
-    
     if not user_id:
         logger.warning("User ID not found in authorizer context")
         raise UnauthorizedError("User not authenticated")
     
-    # TODO: Replace with actual DB lookup to get user details
-    # This is a placeholder implementation
+    # Query user from DynamoDB
+    response = table.query(
+        KeyConditionExpression=Key("id").eq(f"USER#{user_id}") & Key("metadata").eq("METADATA")
+    )
+    
+    items = response.get("Items", [])
+    if not items:
+        logger.warning(f"User not found: {user_id}")
+        raise UnauthorizedError("User not found")
+    
+    user_data = items[0]
+    user = User.from_dynamodb(user_data)
+    
+    # Check if user is active
+    if user.status != UserStatus.ACTIVE:
+        logger.warning(f"User account is not active: {user_id}")
+        raise UnauthorizedError("User account is not active")
+    
+    # Get role permissions
+    permissions = get_permissions_for_role(user.role.value)
+    
+    # Format user info for response
     user_info = {
-        "id": user_id,
-        "username": "user", # This should come from DB
-        "role": user_role,
-        "permissions": get_permissions_for_role(user_role)
+        "id": user.user_id,
+        "username": user.username,
+        "email": user.email,
+        "fullName": user.full_name,
+        "isActive": user.status == UserStatus.ACTIVE,
+        "lastLoginAt": user.last_login.isoformat() if user.last_login else None,
+        "role": {
+            "id": user.role.value,
+            "name": user.role.value.capitalize()
+        },
+        "permissions": permissions
     }
     
     logger.info(f"Retrieved user info for user {user_id}")
@@ -128,7 +94,7 @@ def get_permissions_for_role(role: str) -> list:
     Returns:
         List of permissions
     """
-    # TODO: Replace with actual permissions from a database or config
+    # Define permissions map for each role
     permissions_map = {
         "admin": [
             "user:read:all",

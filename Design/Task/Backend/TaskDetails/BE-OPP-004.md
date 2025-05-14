@@ -40,7 +40,6 @@ Việc gán Leader cho mỗi cơ hội kinh doanh là bước quan trọng trong
 ### Phát triển Lambda function gán Leader cho cơ hội
 
 - [ ] Triển khai Lambda function xử lý POST /api/v1/opportunities/{id}/assign:
-  - Location: src/functions/opportunity/assign_leader.py
   - Triển khai logic gán Leader cho cơ hội:
     - Xác thực và kiểm tra quyền hạn của người thực hiện gán (Admin hoặc Trưởng phòng)
     - Kiểm tra sự tồn tại của cơ hội và người dùng được gán
@@ -56,7 +55,6 @@ Việc gán Leader cho mỗi cơ hội kinh doanh là bước quan trọng trong
 ### Cập nhật Data Access Layer
 
 - [ ] Cập nhật lớp truy cập dữ liệu cho cơ hội:
-  - Location: src/models/opportunity.py
   - Bổ sung method cập nhật Leader:
     - assign_leader(opportunity_id, leader_id, assigned_by)
   - Thêm lịch sử thay đổi:
@@ -65,7 +63,6 @@ Việc gán Leader cho mỗi cơ hội kinh doanh là bước quan trọng trong
 ### Phát triển hệ thống thông báo
 
 - [ ] Triển khai service gửi thông báo:
-  - Location: src/services/notification_service.py
   - Cài đặt method gửi thông báo khi được gán:
     - send_assignment_notification(leader_id, opportunity_id, opportunity_name, assigned_by)
   - Tích hợp với Amazon SNS hoặc SES để gửi email thông báo
@@ -83,19 +80,6 @@ Việc gán Leader cho mỗi cơ hội kinh doanh là bước quan trọng trong
     - Phân quyền: chỉ Admin và Trưởng phòng mới có quyền
   - Tích hợp với Lambda Authorizer để xác thực và phân quyền
 
-### Phát triển Unit Tests
-
-- [ ] Viết unit tests:
-  - Location: tests/unit/functions/opportunity/
-  - Test case cho assign_leader.py:
-    - Test gán Leader thành công
-    - Test gán lại Leader (thay đổi Leader)
-    - Test khi cơ hội không tồn tại
-    - Test khi người dùng được gán không tồn tại
-    - Test khi người thực hiện gán không có quyền
-  - Test case cho notification_service.py:
-    - Test gửi thông báo thành công
-    - Test xử lý lỗi khi gửi thông báo
 
 ### Tạo Documentation
 
@@ -159,8 +143,6 @@ def assign_leader_to_opportunity(api_base_url, token, opportunity_id, leader_id)
 3. Lịch sử thay đổi được ghi lại
 4. Thông báo được gửi đến Leader được gán
 5. API endpoint được cấu hình đúng với phân quyền
-6. Unit tests đạt coverage > 80%
-7. Tài liệu API đầy đủ
 
 ## Ước tính thời gian
 

@@ -43,7 +43,6 @@ Triển khai các Lambda functions cho phép người dùng xem danh sách cơ h
 ### Phát triển Lambda function xem danh sách cơ hội
 
 - [ ] Triển khai Lambda function xử lý GET /api/v1/opportunities:
-  - Location: src/functions/opportunity/list_opportunities.py
   - Triển khai logic lấy dữ liệu cơ hội:
     - Truy vấn dữ liệu từ bảng OPPORTUNITIES trên DynamoDB
     - Hỗ trợ phân trang với tokenization (DynamoDB pagination)
@@ -71,7 +70,6 @@ Triển khai các Lambda functions cho phép người dùng xem danh sách cơ h
 ### Phát triển Lambda function xem chi tiết cơ hội
 
 - [ ] Triển khai Lambda function xử lý GET /api/v1/opportunities/{id}:
-  - Location: src/functions/opportunity/get_opportunity.py
   - Triển khai logic lấy chi tiết cơ hội:
     - Truy vấn dữ liệu từ bảng OPPORTUNITIES trên DynamoDB theo opportunity_id
     - Kết hợp với dữ liệu từ các bảng liên quan (nếu cần):
@@ -107,148 +105,6 @@ Triển khai các Lambda functions cho phép người dùng xem danh sách cơ h
     - Phân quyền phù hợp
   - Tích hợp với Lambda Authorizer để xác thực và phân quyền
 
-### Phát triển Unit Tests
-
-- [ ] Viết unit tests:
-  - Location: tests/unit/functions/opportunity/
-  - Test case cho list_opportunities.py:
-    - Test lấy danh sách cơ hội với các filter khác nhau
-    - Test phân trang
-    - Test tìm kiếm text
-    - Test sắp xếp
-    - Test tính toán trạng thái follow-up
-    - Test xử lý lỗi
-  - Test case cho get_opportunity.py:
-    - Test lấy chi tiết cơ hội thành công
-    - Test xử lý khi cơ hội không tồn tại
-    - Test xử lý các trường hợp lỗi
-
-### Tạo Documentation
-
-- [ ] Viết tài liệu:
-  - Tài liệu API swagger cho các endpoints:
-    - GET /api/v1/opportunities
-    - GET /api/v1/opportunities/{id}
-  - Mô tả cấu trúc dữ liệu cơ hội (Opportunity)
-  - Mô tả các tham số filter, search và sắp xếp
-  - Mô tả logic tính toán trạng thái follow-up
-
-## Ví dụ cách sử dụng cuối cùng
-
-Dưới đây là ví dụ về cách lấy danh sách cơ hội:
-
-```python
-# Lấy danh sách cơ hội với filter
-import requests
-
-def get_opportunities(api_base_url, token, page_size=10, next_token=None, status=None, 
-                     follow_up_status=None, assigned_to=None, search_term=None):
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json'
-    }
-    
-    params = {
-        'page_size': page_size
-    }
-    
-    if next_token:
-        params['next_token'] = next_token
-    
-    if status:
-        params['status'] = status
-    
-    if follow_up_status:
-        params['follow_up_status'] = follow_up_status
-    
-    if assigned_to:
-        params['assigned_to'] = assigned_to
-    
-    if search_term:
-        params['search'] = search_term
-    
-    response = requests.get(
-        f"{api_base_url}/api/v1/opportunities",
-        headers=headers,
-        params=params
-    )
-    
-    return response.json()
-
-# Lấy chi tiết một cơ hội
-def get_opportunity_details(api_base_url, token, opportunity_id):
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json'
-    }
-    
-    response = requests.get(
-        f"{api_base_url}/api/v1/opportunities/{opportunity_id}",
-        headers=headers
-    )
-    
-    return response.json()
-
-# Kết quả mong đợi cho danh sách cơ hội:
-# {
-#   "items": [
-#     {
-#       "opportunity_id": "opp-123456",
-#       "opportunity_name": "Website Development Project for ABC Corp",
-#       "customer_name": "ABC Corporation",
-#       "status": "IN_PROGRESS",
-#       "potential_value": 75000,
-#       "created_at": "2025-04-01T10:00:00Z",
-#       "last_interaction_date": "2025-05-10T14:30:00Z",
-#       "follow_up_status": "GREEN",
-#       "assigned_to": {
-#         "user_id": "user123",
-#         "name": "Nguyễn Văn A"
-#       },
-#       "hubspot_id": "hubspot-deal-12345"
-#     },
-#     // ... more items
-#   ],
-#   "next_token": "eyJsYXN0X2V2YWx1YXRlZF9rZXkiOnsia2V5IjoiMjAyNS0wNS0xM1QxMDoxNTozMFoifX0=",
-#   "count": 10,
-#   "total": 45
-# }
-
-# Kết quả mong đợi cho chi tiết cơ hội:
-# {
-#   "opportunity_id": "opp-123456",
-#   "opportunity_name": "Website Development Project for ABC Corp",
-#   "customer_name": "ABC Corporation",
-#   "description": "ABC Corporation needs a new website with e-commerce capabilities...",
-#   "status": "IN_PROGRESS",
-#   "potential_value": 75000,
-#   "probability": 80,
-#   "expected_close_date": "2025-07-15T00:00:00Z",
-#   "created_at": "2025-04-01T10:00:00Z",
-#   "updated_at": "2025-05-10T14:30:00Z",
-#   "last_interaction_date": "2025-05-10T14:30:00Z",
-#   "follow_up_status": "GREEN",
-#   "days_since_last_interaction": 3,
-#   "assigned_to": {
-#     "user_id": "user123",
-#     "name": "Nguyễn Văn A",
-#     "email": "nguyen.van.a@company.com"
-#   },
-#   "onsite_priority": false,
-#   "hubspot_id": "hubspot-deal-12345",
-#   "last_sync_at": "2025-05-12T08:15:00Z",
-#   "sync_status": "SUCCESS",
-#   "recent_notes": [
-#     {
-#       "note_id": "note-123",
-#       "content": "Đã gọi điện và đặt lịch hẹn gặp khách hàng vào tuần sau",
-#       "created_by": "Nguyễn Văn A",
-#       "created_at": "2025-05-10T14:30:00Z"
-#     },
-#     // ... more notes
-#   ]
-# }
-```
 
 ## Tiêu chí hoàn thành
 
@@ -256,8 +112,6 @@ def get_opportunity_details(api_base_url, token, opportunity_id):
 2. Lambda function xem chi tiết cơ hội hoạt động chính xác
 3. Tính toán chính xác trạng thái follow-up (Red/Yellow/Green)
 4. API endpoints được cấu hình đúng với phân trang và phân quyền
-5. Unit tests đạt coverage > 80%
-6. Tài liệu API đầy đủ
 
 ## Ước tính thời gian
 

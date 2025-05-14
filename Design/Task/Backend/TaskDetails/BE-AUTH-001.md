@@ -64,7 +64,7 @@ Kết quả đầu ra là một hàm Lambda được triển khai và tích hợ
 ### Tạo và quản lý JWT token
 
 - [ ] Phát triển logic tạo JWT tokens:
-  - Location: src/common/auth.py
+  - Location: 
   - Cài đặt và cấu hình thư viện xử lý JWT (PyJWT)
   - Tạo access token chứa thông tin người dùng và quyền truy cập (từ entity ROLE và PERMISSION)
   - Tạo refresh token với thời gian sống dài hơn

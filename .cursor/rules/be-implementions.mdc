@@ -6,6 +6,8 @@ alwaysApply: true
 # Backend Task Execution Guidelines
 
 ## Overview
+You are master of backend developer, and expert to use Python and AWS.
+This Project is real and production of project.
 This document outlines the standards and procedures for executing backend tasks to ensure code consistency, maintainability, and adherence to modern design principles. These guidelines are tailored for AI to follow when performing backend tasks.
 
 ## Task Execution Process
@@ -28,9 +30,8 @@ This document outlines the standards and procedures for executing backend tasks 
    - Run cmd: `git checkout -b feature/BE-1234-add-user-authentication`
 
 3. **Implement Task**
-   - Write unit tests before coding
    - Follow all code standards and guidelines
-   - Ensure code coverage ≥ 80%
+   - services and repositories of class must be save on layer.
    - Mock external dependencies
    - Validate inputs and sanitize data
    - Log appropriately
@@ -38,14 +39,9 @@ This document outlines the standards and procedures for executing backend tasks 
 
 4. **Update Documentation**
    - Update `README.md` for affected Lambda functions
-   - Document API specifications (if applicable)
-   - Note key decisions and trade-offs
-   - Use diagrams for complex flows
    - Update task progress in `BE-<TASK-ID>.md`
 
-5. **Testing and Validation**
-   - Run all unit and integration tests
-   - Ensure all tests pass
+5. **Validation**
    - Fix linter warnings and code smells
    - Check for security vulnerabilities
 
@@ -54,12 +50,7 @@ This document outlines the standards and procedures for executing backend tasks 
      - Example: `Add user authentication endpoint (BE-1234)`
    - Run cmd: `git commit -m "Add user authentication endpoint (BE-1234)"`
 
-7. **CI/CD**
-   - Ensure CI pipeline passes (tests, linter, security checks)
-   - Address feedback from code review
-   - Merge PR after approval
-
-8. **Task Completion**
+7. **Task Completion**
    - Update task status in `BE-<TASK-ID>.md`
    - Mark task as complete in tracking system
    - Ensure documentation is finalized
@@ -67,12 +58,10 @@ This document outlines the standards and procedures for executing backend tasks 
 ## Completion Criteria
 A task is complete when:
 1. Code meets all task requirements
-2. All tests pass
-3. Code coverage ≥ 80%
-4. No security vulnerabilities
-5. Adheres to all standards and guidelines
-6. Documentation is complete
-7. Code review is approved
+2. No security vulnerabilities
+3. Adheres to all standards and guidelines
+4. Documentation is complete
+5. Code review is approved
 
 ## Project Structure
 ```
@@ -91,6 +80,9 @@ sdims/
 ├── layers/                    # Shared Lambda Layers
 │   ├── common-layer/          # Layer for shared libraries
 │   │   └── python/            # Python packages
+│   │       └── common         # common ultils 
+│   │       └── services       # services layer
+│   │       └── repositories   # depositories layer
 │   │       └── requirements.txt  # Layer dependencies
 ├── events/                    # Sample events for API testing
 ├── tests/                     # Unit and integration tests

@@ -5,16 +5,21 @@ import os
 from typing import Dict, Any, Optional
 
 from aws_lambda_powertools import Logger
-
-from src.common.auth import AuthUtility
+from common.dynamodb import DynamoDBRepository
+from common.auth import AuthUtility
+from auth.logout import _get_token_jti, _is_token_blacklisted
 
 logger = Logger(service="auth-authorizer")
 
 # Environment variables
 JWT_SECRET = os.environ.get("JWT_SECRET", "your-secret-key")  # In production, use AWS Secrets Manager
+TABLE_NAME = os.environ.get("TABLE_NAME")
 
 # Initialize AuthUtility
 auth_util = AuthUtility(jwt_secret=JWT_SECRET)
+
+# Initialize DynamoDB repository
+dynamodb_repo = DynamoDBRepository(table_name=TABLE_NAME)
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -42,6 +47,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     if not token:
         logger.warning("Unauthorized: Missing or invalid Authorization header")
+        return auth_util.generate_policy("user", "Deny", event["methodArn"])
+    
+    # Check if token is in blacklist
+    token_jti = _get_token_jti(token)
+    if _is_token_blacklisted(token_jti):
+        logger.warning(f"Unauthorized: Token is blacklisted: {token_jti[:8]}...")
         return auth_util.generate_policy("user", "Deny", event["methodArn"])
     
     # Validate token

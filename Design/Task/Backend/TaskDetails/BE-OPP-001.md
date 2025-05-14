@@ -88,27 +88,6 @@ Chức năng này đóng vai trò quan trọng trong việc đảm bảo dữ li
   - Liên kết với Lambda function đồng bộ
   - Cấu hình để scheduled event có thể được bật/tắt thông qua cấu hình hệ thống
 
-### Phát triển Unit Tests
-
-- [ ] Viết unit tests:
-  - Location: tests/unit/functions/opportunity/
-  - Test các thành phần:
-    - Test hubspot_service.py (mock API responses)
-    - Test sync_hubspot.py (mock DynamoDB, Hubspot Service)
-    - Test trigger_sync.py (auth checks, invocation)
-  - Test các cases:
-    - Đồng bộ thành công
-    - Xử lý lỗi Hubspot API
-    - Xử lý lỗi DynamoDB
-    - Xử lý deals bị xóa
-
-### Tạo Documentation
-
-- [ ] Viết tài liệu:
-  - Tài liệu API swagger cho POST /api/v1/opportunities/sync 
-  - Tài liệu mô tả cơ chế đồng bộ và các trường hợp xử lý
-  - Tài liệu cấu hình Hubspot connection
-
 ## Ví dụ cách sử dụng cuối cùng
 
 Dưới đây là ví dụ về cách kích hoạt đồng bộ thủ công:
@@ -151,7 +130,6 @@ Flow tự động đồng bộ:
 2. API endpoint đồng bộ thủ công hoạt động với việc xác thực và phân quyền
 3. CloudWatch Events được cấu hình để kích hoạt đồng bộ tự động
 4. Log đồng bộ được lưu trữ chính xác
-5. Unit tests đạt coverage > 80%
 6. Documentation đầy đủ cho API và cơ chế đồng bộ
 
 ## Ước tính thời gian
